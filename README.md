@@ -102,7 +102,7 @@ O projeto será desenvolvido utilizando a metodologia ágil **Scrum**, com organ
 | Nome              | Função na Sprint             | RA            |
 | ----------------- | ---------------------------- | ------------- |
 | Matheus Ferreira  | SM / Desenvolvedor Backend   | 4231924502    |
-| Victor Hugo       | PO / Desenvolvedor Forntend  | 42421886      |
+| Victor Hugo       | PO / Desenvolvedor Backend   | 42421886      |
 | Vinicius Paiva    | Infra                        | 4231923132    |
 
 ## 14. Status do Projeto
