@@ -41,14 +41,19 @@ O sistema possui uma regra de negócio chamada **Modo Chiclete**.
 
 Quando um lembrete estiver com o Modo Chiclete ativado, o sistema deverá continuar enviando notificações recorrentes até que o usuário marque o lembrete como concluído. O sistema também poderá aumentar automaticamente a prioridade do lembrete caso ele seja ignorado várias vezes.
 
-## 7. Tecnologias Utilizadas
+## 7. Tecnologias Utilizadas (Stack)
 
-- Java
-- Maven
-- JUnit (testes unitários)
-- Cucumber (BDD)
-- GitHub (versionamento)
-- GitHub Projects (Kanban/Scrum)
+| Categoria           | Tecnologia        |
+| ------------------- | ----------------- |
+| Mobile              | Android Java      |
+| Backend             | Spring Boot       |
+| Banco               | PostgreSQL        |
+| ORM                 | JPA / Hibernate   |
+| Migrations          | Flyway            |
+| Containerização     | Docker            |
+| Orquestração local  | Docker Compose    |
+| Testes              | JUnit + Cucumber  |
+| Versionamento       | GitHub            |
 
 ## 8. Arquitetura do Projeto
 
