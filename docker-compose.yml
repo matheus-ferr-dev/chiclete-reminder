@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: chiclete-postgres
+    environment:
+      POSTGRES_DB: chiclete
+      POSTGRES_USER: chiclete
+      POSTGRES_PASSWORD: chiclete
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

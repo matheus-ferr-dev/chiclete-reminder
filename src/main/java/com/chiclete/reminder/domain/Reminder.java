@@ -40,8 +40,13 @@ public class Reminder {
     @Column(nullable = false)
     private boolean completed;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String priority;
+    private ReminderPriority priority;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     public Reminder() {}
 
@@ -68,6 +73,9 @@ public class Reminder {
     public boolean isCompleted() { return completed; }
     public void setCompleted(boolean completed) { this.completed = completed; }
 
-    public String getPriority() { return priority; }
-    public void setPriority(String priority) { this.priority = priority; }
+    public ReminderPriority getPriority() { return priority; }
+    public void setPriority(ReminderPriority priority) { this.priority = priority; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 }
