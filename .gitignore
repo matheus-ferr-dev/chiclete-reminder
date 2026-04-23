@@ -33,3 +33,23 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### macOS ###
+.DS_Store
+
+### Local tooling (never commit) ###
+.jdk/
+
+### Web client (Vite/npm) — artefatos locais ###
+chiclete-reminder-web/node_modules/
+chiclete-reminder-web/dist/
+chiclete-reminder-web/.vite/
+chiclete-reminder-web/.env
+
+### Android / Gradle — artefatos locais ###
+chiclete-reminder-android/.gradle/
+chiclete-reminder-android/**/build/
+chiclete-reminder-android/local.properties
+chiclete-reminder-android/captures/
+chiclete-reminder-android/*.iml
+chiclete-reminder-android/.idea/
