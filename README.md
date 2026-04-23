@@ -1,7 +1,7 @@
 # Chiclete Reminder
 
 ## 1. Nome do Projeto
-
+./mvnw spring-boot:run
 **Chiclete Reminder**
 
 ## 2. Resumo do Projeto
@@ -45,8 +45,9 @@ Quando um lembrete estiver com o Modo Chiclete ativado, o sistema deverá contin
 
 | Categoria           | Tecnologia        |
 | ------------------- | ----------------- |
-| Mobile              | Android Java      |
-| Backend             | Spring Boot       |
+| Mobile              | Android (Java) + Retrofit  |
+| Web                 | Vite + React + TypeScript  |
+| Backend             | Spring Boot                |
 | Banco               | PostgreSQL        |
 | ORM                 | JPA / Hibernate   |
 | Migrations          | Flyway            |
@@ -86,7 +87,35 @@ README.md
 
 ## 10. Como Executar o Projeto
 
-*(Instruções serão adicionadas nas próximas sprints.)*
+Estrutura no workspace:
+
+- `chiclete-reminder/` — API Spring Boot (porta padrão **8080**)
+- `chiclete-reminder-web/` — interface web
+- `chiclete-reminder-android/` — app Android (abrir no **Android Studio**)
+
+### 10.1. Backend (API)
+
+1. Subir o PostgreSQL (banco e credenciais em `src/main/resources/application.properties`).
+2. No diretório `chiclete-reminder/`:  
+   `./mvnw spring-boot:run`  
+3. A API fica em `http://localhost:8080/`.
+
+O backend está com **CORS** liberado para `http://localhost:*` e `http://127.0.0.1:*` (necessário para o front web no Vite, outra origem).
+
+### 10.2. Web (Vite + React)
+
+1. Com a API em execução:  
+   `cd chiclete-reminder-web`  
+2. (Opcional) copiar `cp .env.example .env` e ajustar `VITE_API_URL` se a API não estiver em `http://localhost:8080`.  
+3. `npm install` (primeira vez) e `npm run dev`.  
+4. Abrir o endereço mostrado no terminal (em geral `http://localhost:5173`).
+
+### 10.3. Android
+
+1. Abrir a pasta `chiclete-reminder-android` no **Android Studio** (a IDE pode criar/ajustar o Gradle Wrapper e sincronizar o projeto).  
+2. A URL padrão da API no emulador aponta para o host com **`http://10.0.2.2:8080/`** (é o `localhost` do computador visto de dentro do emulador).  
+3. Garanta o backend rodando no Mac/PC; no emulador, use **Entrar** / **Cadastrar** e depois **Carregar lembretes**.  
+4. Dispositivo físico na mesma Wi‑Fi: no `app/build.gradle`, altere `buildConfigField "API_BASE"` para `http://<IP-da-sua-máquina>:8080/` e reconstrua o app.
 
 ## 11. Como Executar os Testes
 
