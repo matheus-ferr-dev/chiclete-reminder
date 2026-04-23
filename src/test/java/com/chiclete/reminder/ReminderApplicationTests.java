@@ -1,5 +1,6 @@
 package com.chiclete.reminder;
 
+import com.chiclete.reminder.domain.ReminderPriority;
 import com.chiclete.reminder.domain.Reminder;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
@@ -16,12 +17,12 @@ class ReminderApplicationTests {
         reminder.setTitle("Tomar remédio");
         reminder.setDescription("Tomar após o almoço");
         reminder.setScheduledAt(LocalDateTime.of(2025, 4, 1, 12, 0));
-        reminder.setPriority("ALTA");
+        reminder.setPriority(ReminderPriority.ALTA);
         reminder.setChewing(true);
         reminder.setCompleted(false);
 
         assertEquals("Tomar remédio", reminder.getTitle());
-        assertEquals("ALTA", reminder.getPriority());
+        assertEquals(ReminderPriority.ALTA, reminder.getPriority());
         assertTrue(reminder.isChewing());
         assertFalse(reminder.isCompleted());
     }
