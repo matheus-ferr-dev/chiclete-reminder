@@ -2,6 +2,8 @@ package com.chiclete.reminder.domain;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Entidade que representa um lembrete no sistema.
@@ -43,6 +45,19 @@ public class Reminder {
     @Column(nullable = false)
     private String priority;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
+    /** Destinatários com acesso ao lembrete (leitura e ações permitidas pelo serviço). */
+    @ManyToMany
+    @JoinTable(
+        name = "reminder_shares",
+        joinColumns = @JoinColumn(name = "reminder_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> sharedWith = new HashSet<>();
+
     public Reminder() {}
 
     public Long getId() { return id; }
@@ -70,4 +85,10 @@ public class Reminder {
 
     public String getPriority() { return priority; }
     public void setPriority(String priority) { this.priority = priority; }
+
+    public User getOwner() { return owner; }
+    public void setOwner(User owner) { this.owner = owner; }
+
+    public Set<User> getSharedWith() { return sharedWith; }
+    public void setSharedWith(Set<User> sharedWith) { this.sharedWith = sharedWith; }
 }
