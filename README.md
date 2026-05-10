@@ -50,6 +50,7 @@ Quando um lembrete estiver com o Modo Chiclete ativado, o sistema deverá contin
 | Banco               | PostgreSQL        |
 | ORM                 | JPA / Hibernate   |
 | Migrations          | Flyway            |
+| API / health        | Spring Web + Actuator |
 | Containerização     | Docker            |
 | Orquestração local  | Docker Compose    |
 | Testes              | JUnit + Cucumber  |
@@ -57,46 +58,101 @@ Quando um lembrete estiver com o Modo Chiclete ativado, o sistema deverá contin
 
 ## 8. Arquitetura do Projeto
 
-O projeto será organizado em camadas, seguindo boas práticas de engenharia de software:
+Ver detalhes atualizados em [docs/arquitetura.md](docs/arquitetura.md). Em resumo:
 
 ```
-src/
-  domain/   -> Entidades e regras de negócio
-  service/  -> Casos de uso e regras do sistema
-  infra/    -> Persistência de dados
-  ui/       -> Interface do usuário
+src/main/java/com/chiclete/reminder/
+  domain/   → Entidades JPA
+  service/  → Casos de uso
+  infra/    → Repositórios
+  ui/       → Controllers REST
+  config/   → Segurança e JWT
 ```
 
 ## 9. Estrutura de Pastas do Repositório
 
 ```
 /docs
+  arquitetura.md
+  hub.md
+  relatorio-projeto.md
+  pitch.md
   /requisitos
     requisitos-funcionais.md
     requisitos-nao-funcionais.md
   /testes
     plano-de-teste.md
-    roteiros-de-teste.md
-    usabilidade.md
-    /evidencias
-/slides
-/src
+/src/main/java/com/chiclete/reminder
+  domain/
+  infra/
+  service/
+  ui/
+  config/
+/src/main/resources/db/migration
+docker-compose.yml
 README.md
 ```
 
 ## 10. Como Executar o Projeto
 
-*(Instruções serão adicionadas nas próximas sprints.)*
+1. **Subir o PostgreSQL** (na raiz do repositório):
 
-## 11. Como Executar os Testes
+```bash
+docker compose up -d
+```
 
-*(Instruções serão adicionadas nas próximas sprints.)*
+2. **Executar a API** (porta padrão `8080`):
 
-## 12. Metodologia
+```bash
+./mvnw spring-boot:run
+```
+
+Variáveis opcionais: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `APP_JWT_SECRET` (mínimo **64 caracteres** para HS512).
+
+Health check: `GET http://localhost:8080/actuator/health`
+
+**Interface web (login e lembretes):** abre no navegador `http://localhost:8080/` — usa os mesmos endpoints da API (JWT guardado na sessão do navegador).
+
+## 11. API (resumo)
+
+| Método | Caminho | Descrição |
+|--------|---------|-----------|
+| POST | `/api/auth/register` | Cadastro (retorna JWT) |
+| POST | `/api/auth/login` | Login (JWT) |
+| GET | `/api/reminders` | Lista lembretes do utilizador (próprios + partilhados) |
+| POST | `/api/reminders` | Cria lembrete |
+| GET | `/api/reminders/{id}` | Detalhe |
+| PUT | `/api/reminders/{id}` | Atualiza (dono) |
+| DELETE | `/api/reminders/{id}` | Remove (dono) |
+| PATCH | `/api/reminders/{id}/complete` | Corpo: `{"completed":true}` |
+| PATCH | `/api/reminders/{id}/chewing` | Corpo: `{"chewing":true}` |
+| POST | `/api/reminders/{id}/chewing/ignore` | Simula ignorar notificação (Modo Chiclete) |
+| POST | `/api/reminders/{id}/share` | Corpo: `{"email":"..."}` (dono) |
+| GET | `/api/groups` | Lista grupos em que o utilizador é membro |
+| POST | `/api/groups` | Corpo: `{"name":"..."}` |
+| POST | `/api/groups/{id}/members` | Corpo: `{"email":"..."}` |
+
+Nas rotas protegidas, enviar cabeçalho `Authorization: Bearer <token>`.
+
+## 12. Como Executar os Testes
+
+```bash
+./mvnw test
+```
+
+Utiliza H2 em memória e **não** necessita Docker. Cenários BDD (Cucumber) e integração MockMvc são executados na mesma suíte.
+
+## 13. Metodologia
 
 O projeto será desenvolvido utilizando a metodologia ágil **Scrum**, com organização do trabalho em Sprints, utilização de backlog, issues e quadro Kanban no GitHub.
 
-## 13. Integrantes do Projeto
+### Alinhamento por sprint
+
+- **Sprint 0 — setup:** visão e requisitos em `/docs`, arquitetura, Docker Compose, Flyway, stack alinhada no `pom.xml`, primeira feature técnica (domínio + evolução para API).
+- **Sprint 1 — MVP + HUB:** autenticação JWT, CRUD de lembretes, testes de integração, BDD Cucumber; texto de apoio ao HUB em [docs/hub.md](docs/hub.md).
+- **Sprint 2 — incremento + entregáveis:** partilha de lembretes, grupos, refinamento Modo Chiclete, [relatório](docs/relatorio-projeto.md) e [pitch](docs/pitch.md).
+
+## 14. Integrantes do Projeto
 
 
 | Nome              | Função na Sprint             | RA            |
@@ -105,6 +161,6 @@ O projeto será desenvolvido utilizando a metodologia ágil **Scrum**, com organ
 | Victor Hugo       | PO / Desenvolvedor Backend   | 42421886      |
 | Vinicius Paiva    | Infra                        | 4231923132    |
 
-## 14. Status do Projeto
+## 15. Status do Projeto
 
-**Projeto em desenvolvimento – Sprint 0.**
+**Backend REST funcional — escopo das Sprints 0–2 coberto no repositório** (cliente Android e notificações reais permanecem como evolução).

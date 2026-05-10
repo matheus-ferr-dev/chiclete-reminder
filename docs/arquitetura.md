@@ -27,13 +27,14 @@ até a conclusão da tarefa.
 
 ## 3. Arquitetura em Camadas
 
-O projeto segue o padrão de 4 camadas:
+O projeto segue o padrão de camadas:
 ```
 com.chiclete.reminder/
 ├── domain/    → Entidades e regras de negócio puras
 ├── service/   → Casos de uso, orquestração das regras
-├── infra/     → Repositórios, acesso ao banco, configurações
-└── ui/        → Controllers REST, entrada e saída de dados
+├── infra/     → Repositórios Spring Data JPA
+├── ui/        → Controllers REST e tratamento de erros HTTP
+└── config/    → Segurança, JWT, filtros
 ```
 
 ### Responsabilidade de cada camada
@@ -42,25 +43,35 @@ com.chiclete.reminder/
 Não depende de nenhuma outra camada. É o núcleo do sistema.
 
 **service** — contém as regras de negócio e casos de uso (ex: ativar Modo
-Chiclete, incrementar ignoreCount, elevar prioridade). Depende apenas do domain.
+Chiclete, incrementar ignoreCount, elevar prioridade). Usa **domain** e **infra** (repositórios).
 
-**infra** — contém os repositórios JPA que fazem acesso ao banco.
-Implementa as interfaces definidas pelo service.
+**infra** — repositórios JPA (`UserRepository`, `ReminderRepository`, `GroupRepository`).
 
-**ui** — contém os controllers REST que recebem as requisições HTTP e
-delegam para o service. É a única camada exposta externamente.
+**ui** — controllers em `/api` e `GlobalExceptionHandler`.
+
+**config** — `SecurityConfig`, `JwtService`, `JwtAuthenticationFilter`.
 
 ---
 
-## 4. Entidades Principais
+## 4. Segurança
+
+- Autenticação **stateless** com **JWT** (`Authorization: Bearer <token>`).
+- Senhas com **BCrypt**.
+- Endpoints públicos: `POST /api/auth/register`, `POST /api/auth/login`, `GET /actuator/health`.
+
+---
+
+## 5. Entidades Principais
 
 ### Reminder
 Representa um lembrete. Campos principais:
 - `title`, `description`, `scheduledAt`, `priority`
 - `chewing` — Modo Chiclete ativo/inativo
-- `intervalMinutes` — intervalo de repetição em minutos
+- `intervalMinutes` — intervalo em minutos (uso pelo cliente agendador / notificações)
 - `ignoreCount` — contador de vezes ignorado
 - `completed` — se foi concluído
+- `owner` — usuário dono (obrigatório)
+- `sharedWith` — usuários com acesso ao lembrete (tabela `reminder_shares`)
 
 ### User
 Representa um usuário do sistema. Campos principais:
@@ -74,7 +85,7 @@ Representa um grupo de usuários. Campos principais:
 
 ---
 
-## 5. Fluxo de uma Requisição
+## 6. Fluxo de uma Requisição
 ```
 HTTP Request
     └── ui (Controller)
@@ -85,17 +96,17 @@ HTTP Request
 
 ---
 
-## 6. Ambiente de Desenvolvimento
+## 7. Ambiente de Desenvolvimento
 
 O banco de dados roda via Docker Compose. As migrations são gerenciadas
 pelo Flyway e executadas automaticamente ao subir a aplicação.
 
 ---
 
-## 7. Regra de Negócio Principal — Modo Chiclete
+## 8. Regra de Negócio Principal — Modo Chiclete
 
 Quando `chewing = true`:
-1. O sistema envia notificações no intervalo definido em `intervalMinutes`
-2. A cada notificação ignorada, `ignoreCount` é incrementado
-3. Se `ignoreCount` atingir o limite configurado, a `priority` é elevada automaticamente
-4. O lembrete só para quando `completed = true`
+1. O cliente ou integração futura dispara notificações conforme `intervalMinutes`
+2. O endpoint `POST /api/reminders/{id}/chewing/ignore` incrementa `ignoreCount` (simula notificação ignorada)
+3. Quando `ignoreCount` é múltiplo do limite configurado (`app.chewing.ignore-threshold`), a `priority` sobe um degrau (BAIXA → MEDIA → ALTA → URGENTE)
+4. O ciclo pára quando `completed = true` (e `ignoreCount` é zerado na conclusão)
