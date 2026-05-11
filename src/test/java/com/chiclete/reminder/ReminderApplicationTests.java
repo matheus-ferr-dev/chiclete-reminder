@@ -15,7 +15,7 @@ class ReminderApplicationTests {
         Reminder reminder = new Reminder();
         reminder.setTitle("Tomar remédio");
         reminder.setDescription("Tomar após o almoço");
-        reminder.setScheduledAt(LocalDateTime.of(2025, 4, 1, 12, 0));
+        reminder.setScheduledAt(LocalDateTime.of(2026, 4, 1, 12, 0));
         reminder.setPriority("ALTA");
         reminder.setChewing(true);
         reminder.setCompleted(false);
