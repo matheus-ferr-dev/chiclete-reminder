@@ -1,8 +1,8 @@
-# Arquitetura do Sistema — Chiclete Reminder
+# Arquitetura do Sistema — Chiclete
 
 ## 1. Visão Geral
 
-O Chiclete Reminder é uma API REST desenvolvida em Java com Spring Boot,
+O Chiclete é uma API REST desenvolvida em Java com Spring Boot,
 seguindo arquitetura em camadas. O sistema gerencia lembretes pessoais e
 compartilhados, com suporte ao Modo Chiclete — notificações persistentes
 até a conclusão da tarefa.

@@ -1,6 +1,6 @@
 # HUB — Pré-Projeto e Canvas
 
-Este repositório implementa o **backend** do Chiclete Reminder. Os entregáveis de **Pré-Projeto** e **Canvas** da disciplina costumam ficar no ambiente do HUB (upload de PDF/Docs) ou num **Cursor Canvas** (`.canvas.tsx`) associado ao projeto.
+Este repositório implementa o **backend** do Chiclete. Os entregáveis de **Pré-Projeto** e **Canvas** da disciplina costumam ficar no ambiente do HUB (upload de PDF/Docs) ou num **Cursor Canvas** (`.canvas.tsx`) associado ao projeto.
 
 ## O que anexar no HUB
 

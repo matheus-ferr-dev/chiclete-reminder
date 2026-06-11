@@ -1,8 +1,8 @@
-# Relatório do projeto — Chiclete Reminder
+# Relatório do projeto — Chiclete
 
 ## 1. Introdução
 
-O Chiclete Reminder é um sistema de lembretes com **Modo Chiclete** (persistência de urgência até a conclusão), cadastro de usuários, compartilhamento por e-mail e grupos. Este relatório descreve a implementação atual do **backend REST** em Spring Boot.
+O Chiclete é um sistema de lembretes com **Modo Chiclete** (persistência de urgência até a conclusão), cadastro de usuários, compartilhamento por e-mail e grupos. Este relatório descreve a implementação atual do **backend REST** em Spring Boot.
 
 ## 2. Objetivos alcançados
 
