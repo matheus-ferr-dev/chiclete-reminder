@@ -2,7 +2,7 @@
 Funcionalidade: Cadastro e lembretes
   Como usuário
   Quero me cadastrar e criar lembretes
-  Para acompanhar minhas tarefas com o Chiclete Reminder
+  Para acompanhar minhas tarefas com o Chiclete
 
   Cenário: Fluxo mínimo de API
     Dado a API está disponível
