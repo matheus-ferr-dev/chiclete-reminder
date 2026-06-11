@@ -1,15 +1,14 @@
 package com.chiclete.reminder.bdd;
 
+import io.cucumber.junit.platform.engine.Constants;
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.SelectFile;
 import org.junit.platform.suite.api.Suite;
-
-import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.chiclete.reminder.bdd")
+@SelectFile("cenarios-bdd.feature")
+@ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = "com.chiclete.reminder.bdd")
 public class CucumberTestRunner {
 }
