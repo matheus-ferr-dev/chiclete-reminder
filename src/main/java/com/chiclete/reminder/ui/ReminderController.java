@@ -58,9 +58,19 @@ public class ReminderController {
         return reminderService.setChewing(id, body.chewing(), currentUserService.requireCurrentUser());
     }
 
+    @PatchMapping("/{id}/recurrence")
+    public ReminderResponse patchRecurrence(@PathVariable Long id, @Valid @RequestBody PatchRecurrenceRequest body) {
+        return reminderService.setRecurringEnabled(id, body.enabled(), currentUserService.requireCurrentUser());
+    }
+
     @PostMapping("/{id}/chewing/ignore")
     public ReminderResponse chewingIgnored(@PathVariable Long id) {
         return reminderService.recordChewingIgnored(id, currentUserService.requireCurrentUser());
+    }
+
+    @PostMapping("/{id}/snooze")
+    public ReminderResponse snooze(@PathVariable Long id) {
+        return reminderService.snooze(id, 10, currentUserService.requireCurrentUser());
     }
 
     @PostMapping("/{id}/share")

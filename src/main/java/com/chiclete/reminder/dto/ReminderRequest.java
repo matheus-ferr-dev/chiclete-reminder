@@ -12,5 +12,8 @@ public record ReminderRequest(
         @NotNull LocalDateTime scheduledAt,
         boolean chewing,
         Integer intervalMinutes,
-        @NotBlank @Size(max = 50) String priority
+        @NotBlank @Size(max = 50) String priority,
+        String recurrenceType,
+        String recurrenceDays,
+        Boolean recurringEnabled
 ) {}
