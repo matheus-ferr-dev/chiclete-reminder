@@ -38,6 +38,9 @@ build/
 ### Local tooling (never commit) ###
 .jdk/
 
+### Design exports (Canva, etc.) ###
+/Untitled design*.png
+
 ### Web client (Vite/npm) — artefatos locais ###
 chiclete-web/node_modules/
 chiclete-web/dist/
