@@ -39,15 +39,15 @@ build/
 .jdk/
 
 ### Web client (Vite/npm) — artefatos locais ###
-chiclete-reminder-web/node_modules/
-chiclete-reminder-web/dist/
-chiclete-reminder-web/.vite/
-chiclete-reminder-web/.env
+chiclete-web/node_modules/
+chiclete-web/dist/
+chiclete-web/.vite/
+chiclete-web/.env
 
 ### Android / Gradle — artefatos locais ###
-chiclete-reminder-android/.gradle/
-chiclete-reminder-android/**/build/
-chiclete-reminder-android/local.properties
-chiclete-reminder-android/captures/
-chiclete-reminder-android/*.iml
-chiclete-reminder-android/.idea/
+chiclete-android/.gradle/
+chiclete-android/**/build/
+chiclete-android/local.properties
+chiclete-android/captures/
+chiclete-android/*.iml
+chiclete-android/.idea/
