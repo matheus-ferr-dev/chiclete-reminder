@@ -1,16 +1,16 @@
-# Chiclete Reminder
+# Chiclete
 
 ## 1. Nome do Projeto
 
-**Chiclete Reminder**
+**Chiclete**
 
 ## 2. Resumo do Projeto
 
-O Chiclete Reminder é um aplicativo de lembretes pessoais e compartilhados, desenvolvido com o objetivo de ajudar usuários a não esquecerem tarefas, compromissos e atividades importantes do dia a dia. O principal diferencial do sistema é o **Modo Chiclete**, funcionalidade que mantém o lembrete ativo e envia notificações recorrentes até que o usuário confirme a conclusão da tarefa. O sistema também permite a criação de grupos e o compartilhamento de lembretes entre usuários, tornando o aplicativo útil para famílias, estudantes e equipes de trabalho.
+O Chiclete é um aplicativo de lembretes pessoais e compartilhados, desenvolvido com o objetivo de ajudar usuários a não esquecerem tarefas, compromissos e atividades importantes do dia a dia. O principal diferencial do sistema é o **Modo Chiclete**, funcionalidade que mantém o lembrete ativo e envia notificações recorrentes até que o usuário confirme a conclusão da tarefa. O sistema também permite a criação de grupos e o compartilhamento de lembretes entre usuários, tornando o aplicativo útil para famílias, estudantes e equipes de trabalho.
 
 ## 3. Problema que o Projeto Resolve
 
-Muitas pessoas ignoram notificações simples de aplicativos de lembretes e acabam esquecendo tarefas importantes. Além disso, aplicativos tradicionais não garantem que o usuário realmente visualize ou conclua a tarefa. O Chiclete Reminder busca resolver esse problema por meio de lembretes persistentes e compartilháveis, que acompanham o usuário até a conclusão da atividade.
+Muitas pessoas ignoram notificações simples de aplicativos de lembretes e acabam esquecendo tarefas importantes. Além disso, aplicativos tradicionais não garantem que o usuário realmente visualize ou conclua a tarefa. O Chiclete busca resolver esse problema por meio de lembretes persistentes e compartilháveis, que acompanham o usuário até a conclusão da atividade.
 
 ## 4. Público-Alvo
 

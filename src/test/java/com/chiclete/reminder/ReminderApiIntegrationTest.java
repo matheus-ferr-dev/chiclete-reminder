@@ -52,7 +52,10 @@ class ReminderApiIntegrationTest {
               LocalDateTime.of(2026, 6, 1, 9, 0),
               false,
               null,
-              "MEDIA"
+              "MEDIA",
+              null,
+              null,
+              null
       );
 
       mockMvc.perform(post("/api/reminders")
@@ -78,7 +81,10 @@ class ReminderApiIntegrationTest {
                 LocalDateTime.of(2026, 6, 2, 8, 0),
                 true,
                 15,
-                "BAIXA"
+                "BAIXA",
+                null,
+                null,
+                null
         );
       String body = mockMvc.perform(post("/api/reminders")
                       .header("Authorization", "Bearer " + token)
@@ -113,7 +119,10 @@ class ReminderApiIntegrationTest {
                 LocalDateTime.of(2026, 7, 1, 14, 0),
                 false,
                 null,
-                "ALTA"
+                "ALTA",
+                null,
+                null,
+                null
         );
 
         String created = mockMvc.perform(post("/api/reminders")
@@ -137,6 +146,26 @@ class ReminderApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].title").value("Reunião"));
+    }
+
+    @Test
+    void perfil_atualiza_whatsapp_e_preferencias() throws Exception {
+        String token = registerAndGetToken("perfil@test.com");
+
+        mockMvc.perform(get("/api/profile").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.notifyInApp").value(true));
+
+        mockMvc.perform(put("/api/profile")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"whatsapp":"5511999887766","notifyWhatsapp":true,"name":"Victor"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.whatsapp").value("5511999887766"))
+                .andExpect(jsonPath("$.notifyWhatsapp").value(true))
+                .andExpect(jsonPath("$.name").value("Victor"));
     }
 
     @Test
