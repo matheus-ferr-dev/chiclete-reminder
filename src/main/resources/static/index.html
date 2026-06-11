@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chiclete Reminder</title>
+    <link rel="stylesheet" href="/css/app.css" />
+  </head>
+  <body>
+    <div id="auth-root" class="shell">
+      <div class="brand">
+        <h1>Chiclete Reminder</h1>
+        <p>Lembretes que não desistem de ti.</p>
+      </div>
+      <div class="card">
+        <div class="tabs">
+          <button type="button" id="tab-login" class="active">Entrar</button>
+          <button type="button" id="tab-register">Criar conta</button>
+        </div>
+        <div id="msg-auth" class="msg"></div>
+        <div id="panel-login" class="panel active">
+          <form id="form-login">
+            <label for="login-email">E-mail</label>
+            <input id="login-email" type="email" autocomplete="username" required />
+            <label for="login-password">Senha</label>
+            <input id="login-password" type="password" autocomplete="current-password" required minlength="6" />
+            <button type="submit" class="btn btn-primary">Entrar</button>
+          </form>
+        </div>
+        <div id="panel-register" class="panel">
+          <form id="form-register">
+            <label for="reg-name">Nome</label>
+            <input id="reg-name" type="text" required maxlength="120" />
+            <label for="reg-email">E-mail</label>
+            <input id="reg-email" type="email" autocomplete="email" required />
+            <label for="reg-password">Senha (mín. 6 caracteres)</label>
+            <input id="reg-password" type="password" autocomplete="new-password" required minlength="6" />
+            <button type="submit" class="btn btn-primary">Criar conta e entrar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="app-root" class="app-shell hidden">
+      <header class="app-header">
+        <div>
+          <h1>Os teus lembretes</h1>
+          <div id="user-email" class="user-email"></div>
+        </div>
+        <div>
+          <button type="button" id="btn-refresh" class="btn btn-ghost" style="width: auto; display: inline-block; margin-right: 0.5rem">Atualizar</button>
+          <button type="button" id="btn-logout" class="btn btn-ghost" style="width: auto; display: inline-block">Sair</button>
+        </div>
+      </header>
+      <div id="msg-app" class="msg"></div>
+      <p class="section-title">Lista</p>
+      <ul id="reminder-list" class="reminder-list"></ul>
+      <p id="empty-state" class="empty hidden">Ainda não tens lembretes. Cria o primeiro abaixo.</p>
+
+      <p class="section-title" style="margin-top: 1.5rem">Novo lembrete</p>
+      <div class="card">
+        <form id="form-new">
+          <label for="nr-title">Título</label>
+          <input id="nr-title" type="text" required maxlength="255" placeholder="Ex.: Estudar capítulo 4" />
+          <label for="nr-when">Data e hora</label>
+          <input id="nr-when" type="datetime-local" required />
+          <label for="nr-priority">Prioridade</label>
+          <select id="nr-priority">
+            <option value="BAIXA">Baixa</option>
+            <option value="MEDIA" selected>Média</option>
+            <option value="ALTA">Alta</option>
+            <option value="URGENTE">Urgente</option>
+          </select>
+          <div class="row-check">
+            <input id="nr-chewing" type="checkbox" />
+            <label for="nr-chewing" style="margin: 0">Modo Chiclete (persistente)</label>
+          </div>
+          <button type="submit" class="btn btn-primary">Guardar lembrete</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+  </body>
+</html>
