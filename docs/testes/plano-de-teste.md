@@ -4,19 +4,21 @@
 
 1. **Unitário (domínio):** getters/setters e invariantes simples da entidade `Reminder` — `ReminderApplicationTests`.
 2. **Integração (API):** `ReminderApiIntegrationTest` com MockMvc, H2 em memória e transações revertidas.
-3. **BDD:** Cucumber em `src/test/resources/features/` exercitando fluxos essenciais via HTTP real (`RANDOM_PORT` + `TestRestTemplate`).
+3. **BDD:** Cucumber em [`cenarios-bdd.feature`](../../cenarios-bdd.feature) (raiz do repositório), exercitando fluxos essenciais via HTTP real (`RANDOM_PORT` + `TestRestTemplate`).
 
 ## Cenários BDD (Cucumber)
 
-| Arquivo | Cenário |
-|---------|---------|
-| `lembretes.feature` | Fluxo mínimo de API — cadastro + criar lembrete |
-| `autenticacao.feature` | Login com credenciais válidas |
-| `autenticacao.feature` | Login com senha incorreta |
-| `modo-chiclete.feature` | Prioridade escala após ignorar notificações (3× ignore → BAIXA → MEDIA) |
-| `compartilhamento.feature` | Convidado vê lembrete compartilhado |
-| `grupos.feature` | Membro convidado visualiza o grupo |
-| `conclusao.feature` | Marcar lembrete como concluído |
+Arquivo único: **`cenarios-bdd.feature`** (raiz do projeto).
+
+| Funcionalidade | Cenário |
+|----------------|---------|
+| Cadastro e lembretes | Fluxo mínimo de API — cadastro + criar lembrete |
+| Autenticação | Login com credenciais válidas |
+| Autenticação | Login com senha incorreta |
+| Modo Chiclete | Prioridade escala após ignorar notificações (3× ignore → BAIXA → MEDIA) |
+| Compartilhamento | Convidado vê lembrete compartilhado |
+| Grupos | Membro convidado visualiza o grupo |
+| Conclusão | Marcar lembrete como concluído |
 
 Step definitions: `src/test/java/com/chiclete/reminder/bdd/ReminderApiSteps.java`
 
