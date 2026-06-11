@@ -26,6 +26,19 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    /** Número WhatsApp com DDI, só dígitos (ex.: 5511999998888). */
+    @Column(length = 20)
+    private String whatsapp;
+
+    @Column(nullable = false)
+    private boolean notifyEmail = true;
+
+    @Column(nullable = false)
+    private boolean notifyWhatsapp = false;
+
+    @Column(nullable = false)
+    private boolean notifyInApp = true;
+
     public User() {}
 
     public Long getId() { return id; }
@@ -41,4 +54,16 @@ public class User {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getWhatsapp() { return whatsapp; }
+    public void setWhatsapp(String whatsapp) { this.whatsapp = whatsapp; }
+
+    public boolean isNotifyEmail() { return notifyEmail; }
+    public void setNotifyEmail(boolean notifyEmail) { this.notifyEmail = notifyEmail; }
+
+    public boolean isNotifyWhatsapp() { return notifyWhatsapp; }
+    public void setNotifyWhatsapp(boolean notifyWhatsapp) { this.notifyWhatsapp = notifyWhatsapp; }
+
+    public boolean isNotifyInApp() { return notifyInApp; }
+    public void setNotifyInApp(boolean notifyInApp) { this.notifyInApp = notifyInApp; }
 }

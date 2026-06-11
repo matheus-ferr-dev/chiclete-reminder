@@ -45,6 +45,26 @@ public class Reminder {
     @Column(nullable = false)
     private String priority;
 
+    /** Momento do último alerta enviado (in-app ou externo). */
+    @Column
+    private LocalDateTime lastNotifiedAt;
+
+    /** Adiamento temporário — não dispara alertas até este momento. */
+    @Column
+    private LocalDateTime snoozedUntil;
+
+    /** NONE, WEEKDAYS ou CUSTOM — lembrete recorrente nos dias configurados. */
+    @Column(nullable = false)
+    private String recurrenceType = RecurrenceSupport.NONE;
+
+    /** Dias ISO-8601 (1=seg … 7=dom), ex.: "1,2,3,4,5". */
+    @Column
+    private String recurrenceDays;
+
+    /** Quando falso, a recorrência fica pausada sem eliminar o lembrete. */
+    @Column(nullable = false)
+    private boolean recurringEnabled = true;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
@@ -85,6 +105,21 @@ public class Reminder {
 
     public String getPriority() { return priority; }
     public void setPriority(String priority) { this.priority = priority; }
+
+    public LocalDateTime getLastNotifiedAt() { return lastNotifiedAt; }
+    public void setLastNotifiedAt(LocalDateTime lastNotifiedAt) { this.lastNotifiedAt = lastNotifiedAt; }
+
+    public LocalDateTime getSnoozedUntil() { return snoozedUntil; }
+    public void setSnoozedUntil(LocalDateTime snoozedUntil) { this.snoozedUntil = snoozedUntil; }
+
+    public String getRecurrenceType() { return recurrenceType; }
+    public void setRecurrenceType(String recurrenceType) { this.recurrenceType = recurrenceType; }
+
+    public String getRecurrenceDays() { return recurrenceDays; }
+    public void setRecurrenceDays(String recurrenceDays) { this.recurrenceDays = recurrenceDays; }
+
+    public boolean isRecurringEnabled() { return recurringEnabled; }
+    public void setRecurringEnabled(boolean recurringEnabled) { this.recurringEnabled = recurringEnabled; }
 
     public User getOwner() { return owner; }
     public void setOwner(User owner) { this.owner = owner; }

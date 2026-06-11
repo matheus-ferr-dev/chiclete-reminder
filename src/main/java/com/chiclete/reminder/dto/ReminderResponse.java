@@ -13,6 +13,9 @@ public record ReminderResponse(
         int ignoreCount,
         boolean completed,
         String priority,
+        String recurrenceType,
+        String recurrenceDays,
+        boolean recurringEnabled,
         Long ownerId,
         List<String> sharedWithEmails
 ) {}

@@ -1,5 +1,6 @@
 package com.chiclete.reminder.service;
 
+import com.chiclete.reminder.domain.RecurrenceSupport;
 import com.chiclete.reminder.domain.Reminder;
 import com.chiclete.reminder.domain.User;
 import com.chiclete.reminder.dto.ReminderRequest;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -78,9 +80,39 @@ public class ReminderService {
     @Transactional
     public ReminderResponse setCompleted(Long id, boolean completed, User user) {
         Reminder r = getVisibleReminderOrThrow(id, user);
+        if (completed && RecurrenceSupport.isRecurring(r)) {
+            r.setCompleted(false);
+            r.setIgnoreCount(0);
+            r.setLastNotifiedAt(null);
+            r.setSnoozedUntil(null);
+            r.setScheduledAt(RecurrenceSupport.nextOccurrenceStrictlyAfter(java.time.LocalDateTime.now(), r));
+            reminderRepository.save(r);
+            return toResponse(r);
+        }
         r.setCompleted(completed);
         if (completed) {
             r.setIgnoreCount(0);
+            r.setLastNotifiedAt(null);
+            r.setSnoozedUntil(null);
+        }
+        reminderRepository.save(r);
+        return toResponse(r);
+    }
+
+    @Transactional
+    public ReminderResponse setRecurringEnabled(Long id, boolean enabled, User user) {
+        Reminder r = getOwnedReminderOrThrow(id, user);
+        if (!RecurrenceSupport.isRecurringType(r.getRecurrenceType())) {
+            throw new DomainRuleException("Este lembrete não possui repetição configurada");
+        }
+        r.setRecurringEnabled(enabled);
+        if (enabled) {
+            r.setCompleted(false);
+            r.setScheduledAt(RecurrenceSupport.alignInitialSchedule(
+                    r.getScheduledAt(),
+                    r.getRecurrenceType(),
+                    r.getRecurrenceDays()
+            ));
         }
         reminderRepository.save(r);
         return toResponse(r);
@@ -90,6 +122,20 @@ public class ReminderService {
     public ReminderResponse setChewing(Long id, boolean chewing, User user) {
         Reminder r = getVisibleReminderOrThrow(id, user);
         r.setChewing(chewing);
+        reminderRepository.save(r);
+        return toResponse(r);
+    }
+
+    @Transactional
+    public ReminderResponse snooze(Long id, int minutes, User user) {
+        Reminder r = getVisibleReminderOrThrow(id, user);
+        if (r.isCompleted()) {
+            throw new DomainRuleException("Lembrete já concluído");
+        }
+        if (minutes <= 0) {
+            throw new DomainRuleException("Minutos de adiamento inválidos");
+        }
+        r.setSnoozedUntil(java.time.LocalDateTime.now().plusMinutes(minutes));
         reminderRepository.save(r);
         return toResponse(r);
     }
@@ -123,12 +169,25 @@ public class ReminderService {
     }
 
     private void applyRequest(Reminder r, ReminderRequest request) {
+        String recurrenceType = RecurrenceSupport.normalizeType(request.recurrenceType());
+        String recurrenceDays = RecurrenceSupport.normalizeDaysForType(recurrenceType, request.recurrenceDays());
+        boolean recurringEnabled = request.recurringEnabled() == null || request.recurringEnabled();
+
         r.setTitle(request.title());
         r.setDescription(request.description());
-        r.setScheduledAt(request.scheduledAt());
         r.setChewing(request.chewing());
         r.setIntervalMinutes(request.intervalMinutes());
         r.setPriority(normalizePriority(request.priority()));
+        r.setRecurrenceType(recurrenceType);
+        r.setRecurrenceDays(recurrenceDays);
+        r.setRecurringEnabled(recurringEnabled);
+
+        LocalDateTime scheduledAt = RecurrenceSupport.alignInitialSchedule(
+                request.scheduledAt(),
+                recurrenceType,
+                recurrenceDays
+        );
+        r.setScheduledAt(scheduledAt);
     }
 
     private String normalizePriority(String p) {
@@ -199,6 +258,9 @@ public class ReminderService {
                 r.getIgnoreCount(),
                 r.isCompleted(),
                 r.getPriority(),
+                r.getRecurrenceType(),
+                r.getRecurrenceDays(),
+                r.isRecurringEnabled(),
                 r.getOwner().getId(),
                 sharedEmails
         );

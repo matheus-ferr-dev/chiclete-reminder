@@ -52,4 +52,11 @@ public class AuthService {
                 .orElseThrow(() -> new DomainRuleException("Credenciais inválidas"));
         return new TokenResponse(jwtService.generateToken(user));
     }
+
+    @Transactional
+    public void resetPassword(String email, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new DomainRuleException("E-mail não encontrado"));
+        user.setPassword(passwordEncoder.encode(newPassword));
+    }
 }
