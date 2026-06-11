@@ -1,4 +1,4 @@
-# Requisitos não funcionais — Chiclete Reminder
+# Requisitos não funcionais — Chiclete
 
 | ID | Requisito | Como é atendido |
 |----|-----------|-----------------|

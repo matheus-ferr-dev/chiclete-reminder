@@ -1,4 +1,4 @@
-# Requisitos funcionais — Chiclete Reminder
+# Requisitos funcionais — Chiclete
 
 | ID | Requisito | Cobertura no sistema |
 |----|-----------|----------------------|

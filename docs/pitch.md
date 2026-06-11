@@ -1,4 +1,4 @@
-# Pitch — Chiclete Reminder (roteiro sugerido)
+# Pitch — Chiclete (roteiro sugerido)
 
 **Problema:** pessoas ignoram notificações únicas e esquecem o que importa.
 
