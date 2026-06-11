@@ -56,7 +56,15 @@ Quando um lembrete estiver com o Modo Chiclete ativado, o sistema deverá contin
 | Testes              | JUnit + Cucumber  |
 | Versionamento       | GitHub            |
 
-## 8. Arquitetura do Projeto
+## 8. Testes BDD (Cucumber)
+
+Todos os cenários de aceitação estão em um único arquivo na **raiz do repositório**:
+
+**[`cenarios-bdd.feature`](cenarios-bdd.feature)**
+
+Inclui 7 cenários: cadastro, login, modo chiclete, compartilhamento, grupos e conclusão de lembretes.
+
+## 9. Arquitetura do Projeto
 
 Ver detalhes atualizados em [docs/arquitetura.md](docs/arquitetura.md). Em resumo:
 
@@ -69,9 +77,10 @@ src/main/java/com/chiclete/reminder/
   config/   → Segurança e JWT
 ```
 
-## 9. Estrutura de Pastas do Repositório
+## 10. Estrutura de Pastas do Repositório
 
 ```
+cenarios-bdd.feature   → Cenários BDD (Cucumber/Gherkin) — arquivo único na raiz
 /docs
   arquitetura.md
   hub.md
@@ -93,7 +102,7 @@ docker-compose.yml
 README.md
 ```
 
-## 10. Como Executar o Projeto
+## 11. Como Executar o Projeto
 
 1. **Subir o PostgreSQL** (na raiz do repositório):
 
@@ -113,7 +122,7 @@ Health check: `GET http://localhost:8080/actuator/health`
 
 **Interface web (login e lembretes):** abre no navegador `http://localhost:8080/` — usa os mesmos endpoints da API (JWT guardado na sessão do navegador).
 
-## 11. API (resumo)
+## 12. API (resumo)
 
 | Método | Caminho | Descrição |
 |--------|---------|-----------|
@@ -134,15 +143,15 @@ Health check: `GET http://localhost:8080/actuator/health`
 
 Nas rotas protegidas, enviar cabeçalho `Authorization: Bearer <token>`.
 
-## 12. Como Executar os Testes
+## 13. Como Executar os Testes
 
 ```bash
 ./mvnw test
 ```
 
-Utiliza H2 em memória e **não** necessita Docker. Cenários BDD (Cucumber) e integração MockMvc são executados na mesma suíte.
+Utiliza H2 em memória e **não** necessita Docker. Cenários BDD em [`cenarios-bdd.feature`](cenarios-bdd.feature) e integração MockMvc são executados na mesma suíte.
 
-## 13. Metodologia
+## 14. Metodologia
 
 O projeto será desenvolvido utilizando a metodologia ágil **Scrum**, com organização do trabalho em Sprints, utilização de backlog, issues e quadro Kanban no GitHub.
 
@@ -152,7 +161,7 @@ O projeto será desenvolvido utilizando a metodologia ágil **Scrum**, com organ
 - **Sprint 1 — MVP + HUB:** autenticação JWT, CRUD de lembretes, testes de integração, BDD Cucumber; texto de apoio ao HUB em [docs/hub.md](docs/hub.md).
 - **Sprint 2 — incremento + entregáveis:** partilha de lembretes, grupos, refinamento Modo Chiclete, [relatório](docs/relatorio-projeto.md) e [pitch](docs/pitch.md).
 
-## 14. Integrantes do Projeto
+## 15. Integrantes do Projeto
 
 
 | Nome              | Função na Sprint             | RA            |
@@ -161,6 +170,6 @@ O projeto será desenvolvido utilizando a metodologia ágil **Scrum**, com organ
 | Victor Hugo       | PO / Desenvolvedor Backend   | 42421886      |
 | Vinicius Paiva    | Infra                        | 4231923132    |
 
-## 15. Status do Projeto
+## 16. Status do Projeto
 
 **Backend REST funcional — escopo das Sprints 0–2 coberto no repositório** (cliente Android e notificações reais permanecem como evolução).
