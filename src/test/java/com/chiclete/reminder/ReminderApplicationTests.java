@@ -1,6 +1,5 @@
 package com.chiclete.reminder;
 
-import com.chiclete.reminder.domain.ReminderPriority;
 import com.chiclete.reminder.domain.Reminder;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
@@ -22,7 +21,7 @@ class ReminderApplicationTests {
         reminder.setCompleted(false);
 
         assertEquals("Tomar remédio", reminder.getTitle());
-        assertEquals(ReminderPriority.ALTA, reminder.getPriority());
+        assertEquals("ALTA", reminder.getPriority());
         assertTrue(reminder.isChewing());
         assertFalse(reminder.isCompleted());
     }

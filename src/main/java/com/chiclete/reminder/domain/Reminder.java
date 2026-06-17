@@ -42,13 +42,8 @@ public class Reminder {
     @Column(nullable = false)
     private boolean completed;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ReminderPriority priority;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private String priority;
 
     /** Momento do último alerta enviado (in-app ou externo). */
     @Column
