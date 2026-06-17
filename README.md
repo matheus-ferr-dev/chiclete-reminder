@@ -45,8 +45,9 @@ Quando um lembrete estiver com o Modo Chiclete ativado, o sistema deverá contin
 
 | Categoria           | Tecnologia        |
 | ------------------- | ----------------- |
-| Mobile              | Android Java      |
-| Backend             | Spring Boot       |
+| Mobile              | Android (Java) + Retrofit  |
+| Web                 | Vite + React + TypeScript  |
+| Backend             | Spring Boot                |
 | Banco               | PostgreSQL        |
 | ORM                 | JPA / Hibernate   |
 | Migrations          | Flyway            |

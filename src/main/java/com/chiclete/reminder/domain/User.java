@@ -23,8 +23,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role;
+    private UserRole role;
 
     /** Número WhatsApp com DDI, só dígitos (ex.: 5511999998888). */
     @Column(length = 20)
