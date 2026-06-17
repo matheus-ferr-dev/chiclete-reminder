@@ -63,7 +63,7 @@ function toastIcon(text, kind) {
   if (/breve/i.test(text)) return "⏳";
   if (/alerta|Chiclete|🫧/i.test(text)) return "🫧";
   if (/concluí|feito|🎉/i.test(text)) return "✓";
-  if (/criado|guardado|adicionado|partilh|grupo/i.test(text)) return "★";
+  if (/criado|salvo|adicionado|compartilh|grupo/i.test(text)) return "★";
   if (/Adiado|adiado/i.test(text)) return "⏰";
   if (/ignor/i.test(text)) return "👀";
   if (/tranquilo|pendente/i.test(text)) return "😌";
@@ -282,7 +282,7 @@ function refreshReminderGroupAssign() {
   if (!owned.length) {
     wrap.classList.add("hidden");
     groupSel.innerHTML = '<option value="">— Sem grupo —</option>';
-    memberSel.innerHTML = '<option value="">— Sem designação —</option>';
+    memberSel.innerHTML = '<option value="">— Sem atribuição —</option>';
     assignWrap?.classList.add("hidden");
     return;
   }
@@ -302,7 +302,7 @@ function populateAssigneeOptions(groupId) {
   const assignWrap = $("nr-assignee-wrap");
   if (!memberSel) return;
   if (!groupId) {
-    memberSel.innerHTML = '<option value="">— Sem designação —</option>';
+    memberSel.innerHTML = '<option value="">— Sem atribuição —</option>';
     memberSel.disabled = false;
     assignWrap?.classList.add("hidden");
     return;
@@ -322,19 +322,19 @@ function populateAssigneeOptions(groupId) {
   }
   memberSel.disabled = false;
   memberSel.innerHTML =
-    '<option value="">— Sem designação —</option>' +
+    '<option value="">— Sem atribuição —</option>' +
     others.map((m) => `<option value="${attrVal(m.email)}">${escapeHtml(m.name || m.email)}</option>`).join("");
 }
 
 function greetingFromEmail(email) {
   const local = (email || "").split("@")[0];
-  if (!local) return "Utilizador";
+  if (!local) return "Usuário";
   return local.charAt(0).toUpperCase() + local.slice(1);
 }
 
 function updateUserDisplay(nameOrEmail) {
   const full = (nameOrEmail || "").trim() || greetingFromEmail(emailFromToken());
-  const firstName = full.split(/\s+/)[0] || "Utilizador";
+  const firstName = full.split(/\s+/)[0] || "Usuário";
   const truncated = firstName.length > 14 ? firstName.slice(0, 12) + "…" : firstName;
   const greeting = $("user-greeting");
   if (greeting) greeting.textContent = "Olá, " + truncated;
@@ -388,8 +388,8 @@ async function parseError(res) {
     if (j.detail) return j.detail;
     if (j.message) return j.message;
   } catch (_) {}
-  if (res.status === 403) return "Não tens permissão para esta operação";
-  if (res.status === 400) return "Pedido inválido — verifica os dados e tenta novamente";
+  if (res.status === 403) return "Você não tem permissão para esta operação";
+  if (res.status === 400) return "Pedido inválido — verifique os dados e tente novamente";
   return "Erro " + res.status;
 }
 
@@ -463,7 +463,7 @@ async function api(path, options) {
   if (res.status === 401) {
     clearToken();
     showAuth();
-    showMsg($("msg-auth"), "Sessão expirada. Entra novamente.", "err");
+    showMsg($("msg-auth"), "Sessão expirada. Entre novamente.", "err");
     throw new Error("unauthorized");
   }
   return res;
@@ -578,9 +578,9 @@ function playChicleteAlert() {
 }
 
 const AUTH_HEADINGS = {
-  login: { title: "Bem-vindo de volta", sub: "Entra para ver os teus lembretes." },
-  register: { title: "Cria a tua conta", sub: "Começa a usar o Modo Chiclete hoje." },
-  forgot: { title: "Redefinir senha", sub: "Escolhe uma nova senha para a tua conta." },
+  login: { title: "Bem-vindo de volta", sub: "Entre para ver seus lembretes." },
+  register: { title: "Crie sua conta", sub: "Comece a usar o Modo Chiclete hoje." },
+  forgot: { title: "Redefinir senha", sub: "Escolha uma nova senha para sua conta." },
 };
 
 function updateAuthHeadings(mode) {
@@ -625,7 +625,7 @@ function handleSocialClick(e) {
 
   const names = { google: "Google", apple: "Apple", android: "Android" };
   const name = names[btn.dataset.social] || "Esta opção";
-  toast(`${name} chega em breve! Por agora, entra com e-mail.`, "ok");
+  toast(`${name} chega em breve! Por enquanto, entre com e-mail.`, "ok");
 }
 
 function backToLogin() {
@@ -761,7 +761,7 @@ function readRecurrenceFromForm() {
       (chip) => chip.dataset.day
     );
     if (!selected.length) {
-      throw new Error("Seleciona pelo menos um dia para a repetição personalizada.");
+      throw new Error("Selecione pelo menos um dia para a repetição personalizada.");
     }
     return {
       recurrenceType: "CUSTOM",
@@ -831,7 +831,7 @@ function renderReminders() {
     empty.classList.remove("hidden");
     $("empty-text").textContent =
       allReminders.length === 0
-        ? "Ainda não tens lembretes. Toca no + para criar."
+        ? "Você ainda não tem lembretes. Toque no + para criar."
         : "Nenhum lembrete corresponde aos filtros.";
     return;
   }
@@ -864,7 +864,7 @@ function renderReminders() {
       const interval = r.intervalMinutes ? `${r.intervalMinutes}m` : "";
       badges.push(`<span class="badge badge-chiclete">🫧 Chiclete${interval ? ` · ${interval}` : ""}</span>`);
     }
-    if (shared) badges.push('<span class="badge badge-shared">Partilhado</span>');
+    if (shared) badges.push('<span class="badge badge-shared">Compartilhado</span>');
     if (overdue) badges.push('<span class="badge badge-overdue">Atrasado</span>');
 
     let primaryActions = "";
@@ -890,14 +890,14 @@ function renderReminders() {
           moreActions += `<button type="button" class="btn btn-secondary btn-sm" data-action="pause-recurrence" data-id="${r.id}">Desativar repetição</button>`;
         }
       }
-      moreActions += `<button type="button" class="btn btn-secondary btn-sm" data-action="share" data-id="${r.id}">Partilhar</button>`;
+      moreActions += `<button type="button" class="btn btn-secondary btn-sm" data-action="share" data-id="${r.id}">Compartilhar</button>`;
       moreActions += `<button type="button" class="btn btn-secondary btn-sm" data-action="edit" data-id="${r.id}">Editar</button>`;
-      moreActions += `<button type="button" class="btn btn-danger btn-sm" data-action="delete" data-id="${r.id}">Eliminar</button>`;
+      moreActions += `<button type="button" class="btn btn-danger btn-sm" data-action="delete" data-id="${r.id}">Excluir</button>`;
     }
 
     const sharedInfo =
       r.sharedWithEmails && r.sharedWithEmails.length
-        ? `<div class="reminder-shared">Partilhado com ${r.sharedWithEmails.map(escapeHtml).join(", ")}</div>`
+        ? `<div class="reminder-shared">Compartilhado com ${r.sharedWithEmails.map(escapeHtml).join(", ")}</div>`
         : "";
 
     const scheduleClass = overdue ? "reminder-schedule overdue" : "reminder-schedule";
@@ -1005,7 +1005,7 @@ async function loadWhatsappSimulations() {
     const items = await res.json();
     $("wa-sim-count").textContent = items.length + (items.length === 1 ? " mensagem" : " mensagens");
     if (!items.length) {
-      ul.innerHTML = '<li class="wa-sim-empty">Nenhuma mensagem simulada ainda. Ativa WhatsApp no perfil e cria um lembrete Chiclete vencido.</li>';
+      ul.innerHTML = '<li class="wa-sim-empty">Nenhuma mensagem simulada ainda. Ative WhatsApp no perfil e crie um lembrete Chiclete vencido.</li>';
       return;
     }
     ul.innerHTML = items
@@ -1032,7 +1032,7 @@ async function loadNotificationHistory() {
     if (!res.ok) return;
     const items = await res.json();
     if (!items.length) {
-      ul.innerHTML = '<li class="history-empty">Ainda sem alertas registados.</li>';
+      ul.innerHTML = '<li class="history-empty">Ainda sem alertas registrados.</li>';
       return;
     }
     ul.innerHTML = items
@@ -1101,7 +1101,7 @@ function fillProfileForm(p) {
 
 async function saveProfile(e) {
   e.preventDefault();
-  if (!(await showConfirm("Guardar perfil", "Confirmas as alterações ao teu perfil e preferências de notificação?"))) return;
+  if (!(await showConfirm("Salvar perfil", "Deseja confirmar as alterações no seu perfil e preferências de notificação?"))) return;
   const btn = $("btn-save-profile");
   setBtnLoading(btn, true);
   try {
@@ -1120,7 +1120,7 @@ async function saveProfile(e) {
     updateUserDisplay(userProfile.name || userProfile.email);
     toast("Perfil atualizado — tudo pronto para os alertas.", "ok");
   } catch (err) {
-    toast(err.message || "Falha ao guardar perfil.", "err");
+    toast(err.message || "Falha ao salvar perfil.", "err");
   } finally {
     setBtnLoading(btn, false);
   }
@@ -1287,11 +1287,11 @@ async function handleAlertAction(e) {
   const inviteId = validId(btn.dataset.inviteId);
   try {
     if (action === "accept-invite") {
-      if (!inviteId) throw new Error("Convite inválido — abre a seção Grupos.");
-      if (!(await showConfirm("Aceitar convite", "Entrar neste grupo e ver as tarefas partilhadas?"))) return;
+      if (!inviteId) throw new Error("Convite inválido — abra a seção Grupos.");
+      if (!(await showConfirm("Aceitar convite", "Entrar neste grupo e ver as tarefas compartilhadas?"))) return;
       const res = await api("/api/groups/invites/" + inviteId + "/accept", { method: "POST" });
       if (!res.ok) throw new Error(await parseError(res));
-      toast("Convite aceite — já estás no grupo.", "ok");
+      toast("Convite aceito — você já está no grupo.", "ok");
       await Promise.all([loadGroups(), loadNotifications()]);
       return;
     }
@@ -1316,7 +1316,7 @@ async function handleAlertAction(e) {
       loadChicleteStats();
     } else if (action === "snooze") {
       await api("/api/notifications/" + notifId + "/snooze", { method: "POST" });
-      toast("Adiado 10 min — sem penalização.", "ok");
+      toast("Adiado 10 min — sem penalidade.", "ok");
       await loadReminders();
     } else if (action === "dismiss") {
       await api("/api/notifications/" + notifId + "/dismiss", { method: "POST" });
@@ -1443,16 +1443,16 @@ function openModal(title, subtitle, fields, onSubmit) {
 
 function openShareModal(r) {
   openModal(
-    "Partilhar lembrete",
-    "Indica o e-mail de quem já tem conta no Chiclete.",
+    "Compartilhar lembrete",
+    "Informe o e-mail de quem já tem conta no Chiclete.",
     `<label for="share-email">E-mail</label><input id="share-email" name="email" type="email" required placeholder="colega@email.com" />`,
     async (fd, close) => {
       const email = fd.get("email").trim();
-      if (!(await showConfirm("Partilhar lembrete", `Queres partilhar «${r.title}» com ${email}?`))) return;
+      if (!(await showConfirm("Compartilhar lembrete", `Deseja compartilhar "${r.title}" com ${email}?`))) return;
       const updated = await shareReminder(r.id, email);
       replaceReminder(updated);
       close();
-      toast("Lembrete partilhado com sucesso.", "ok");
+      toast("Lembrete compartilhado com sucesso.", "ok");
     }
   );
 }
@@ -1501,7 +1501,7 @@ function openEditModal(r) {
       const chewing = fd.get("chewing") === "on";
       const interval = chewing ? Number(fd.get("intervalMinutes")) || 30 : null;
       const newTitle = fd.get("title").trim();
-      if (!(await showConfirm("Guardar alterações", `Atualizar o lembrete «${newTitle}»?`))) return;
+      if (!(await showConfirm("Salvar alterações", `Atualizar o lembrete "${newTitle}"?`))) return;
       const body = {
         title: newTitle,
         description: fd.get("description").trim() || null,
@@ -1568,7 +1568,7 @@ async function handleReminderAction(e) {
     } else if (action === "snooze") {
       const updated = await snoozeReminder(id);
       replaceReminder(updated);
-      toast("Adiado 10 min — sem penalização.", "ok");
+      toast("Adiado 10 min — sem penalidade.", "ok");
     } else if (action === "ignore") {
       const updated = await simulateIgnore(id);
       replaceReminder(updated);
@@ -1579,10 +1579,10 @@ async function handleReminderAction(e) {
     } else if (action === "edit") {
       openEditModal(r);
     } else if (action === "delete") {
-      if (!(await showConfirm("Eliminar lembrete", `Eliminar «${r.title}»? Esta ação não pode ser anulada.`, { confirmText: "Eliminar", danger: true }))) return;
+      if (!(await showConfirm("Excluir lembrete", `Excluir "${r.title}"? Esta ação não pode ser desfeita.`, { confirmText: "Excluir", danger: true }))) return;
       await deleteReminder(id);
       removeReminder(id);
-      toast("Lembrete eliminado.", "ok");
+      toast("Lembrete excluído.", "ok");
     }
   } catch (err) {
     toast(err.message || "Operação falhou.", "err");
@@ -1679,7 +1679,7 @@ function renderGroups() {
         const e = m.email;
         const isMe = e.toLowerCase() === myEmail;
         const adminBadge = m.admin ? '<span class="member-admin-badge">Admin</span>' : "";
-        const label = isMe ? `${escapeHtml(e)} (tu)` : escapeHtml(e);
+        const label = isMe ? `${escapeHtml(e)} (você)` : escapeHtml(e);
         const removeBtn = isOwner && !isMe
           ? `<button type="button" class="member-remove" data-group-action="remove-member" data-group-id="${g.id}" data-email="${attrVal(e)}" title="Remover membro">×</button>`
           : "";
@@ -1825,7 +1825,7 @@ async function doForgotPassword(e) {
     $("login-password").value = "";
     $("form-forgot").reset();
     switchTab("login");
-    showMsg(msg, "Senha redefinida. Entra com a nova senha.", "ok");
+    showMsg(msg, "Senha redefinida. Entre com a nova senha.", "ok");
   } catch {
     showMsg(msg, "Não foi possível conectar ao servidor.", "err");
   } finally {
@@ -1886,7 +1886,7 @@ async function doCreateReminder(e) {
   const scheduledAt = toIsoLocal($("nr-when").value);
   const chewing = $("nr-chewing").checked;
   if (!title || !scheduledAt) {
-    toast("Preenche título e data/hora.", "err");
+    toast("Preencha título e data/hora.", "err");
     return;
   }
   let recurrence;
@@ -1900,11 +1900,11 @@ async function doCreateReminder(e) {
   const groupIdVal = $("nr-group")?.value || "";
   const assigneeEmail = ($("nr-assignee")?.value || "").trim();
   const group = groupIdVal ? allGroups.find((g) => String(g.id) === groupIdVal) : null;
-  let confirmMsg = `Criar o lembrete «${title}»?`;
+  let confirmMsg = `Criar o lembrete "${title}"?`;
   if (assigneeEmail && group) {
-    confirmMsg = `Criar «${title}» e designar a ${assigneeEmail} no grupo «${group.name}»?`;
+    confirmMsg = `Criar "${title}" e atribuir a ${assigneeEmail} no grupo "${group.name}"?`;
   } else if (group) {
-    confirmMsg = `Criar o lembrete «${title}» no grupo «${group.name}» (sem designação)?`;
+    confirmMsg = `Criar o lembrete "${title}" no grupo "${group.name}" (sem atribuição)?`;
   }
   if (!(await showConfirm("Criar lembrete", confirmMsg))) return;
 
@@ -1939,7 +1939,7 @@ async function doCreateReminder(e) {
     populateAssigneeOptions("");
     closeMobileSheet($("side-create-reminder"));
     toast(
-      assigneeEmail ? "Lembrete criado e designado ao membro." : "Lembrete criado — o Chiclete já está de olho.",
+      assigneeEmail ? "Lembrete criado e atribuído ao membro." : "Lembrete criado — o Chiclete já está de olho.",
       "ok"
     );
     await loadReminders();
@@ -1956,12 +1956,12 @@ async function doCreateGroup(e) {
   const name = $("group-name").value.trim();
   const inviteEmail = $("group-invite")?.value.trim() || "";
   if (!name) {
-    toast("Dá um nome ao grupo.", "err");
+    toast("Dê um nome ao grupo.", "err");
     return;
   }
   const confirmMsg = inviteEmail
-    ? `Criar o grupo «${name}» e enviar convite para ${inviteEmail}?`
-    : `Criar o grupo «${name}»?`;
+    ? `Criar o grupo "${name}" e enviar convite para ${inviteEmail}?`
+    : `Criar o grupo "${name}"?`;
   if (!(await showConfirm("Criar grupo", confirmMsg))) return;
   setBtnLoading(btn, true);
   try {
@@ -1991,7 +1991,7 @@ async function doCreateGroup(e) {
     if ($("group-invite")) $("group-invite").value = "";
     closeMobileSheet($("side-create-group"));
     toast(
-      inviteEmail ? "Grupo criado e convite enviado." : "Grupo criado — hora de partilhar lembretes.",
+      inviteEmail ? "Grupo criado e convite enviado." : "Grupo criado — hora de compartilhar lembretes.",
       "ok"
     );
     await loadGroups();
@@ -2009,7 +2009,7 @@ async function handleGroupAdd(e) {
   const groupId = form.dataset.groupId;
   const email = form.email.value.trim();
   if (!email) {
-    toast("Introduz o e-mail do membro.", "err");
+    toast("Informe o e-mail do membro.", "err");
     return;
   }
   if (!(await showConfirm("Convidar membro", `Enviar convite para ${email}?`))) return;
@@ -2022,7 +2022,7 @@ async function handleGroupAdd(e) {
     });
     if (!res.ok) throw new Error(await parseError(res));
     form.reset();
-    toast("Convite enviado — aguarda a aceitação.", "ok");
+    toast("Convite enviado — aguarde a aceitação.", "ok");
     const gid = validId(groupId);
     if (gid && expandedGroups.has(String(gid))) await loadGroupSentInvites(gid);
     await loadGroups();
@@ -2056,7 +2056,7 @@ async function handleGroupInviteAction(e) {
     const endpoint = action === "accept" ? "accept" : "reject";
     const res = await api(`/api/groups/invites/${inviteId}/${endpoint}`, { method: "POST" });
     if (!res.ok) throw new Error(await parseError(res));
-    toast(action === "accept" ? "Convite aceite — bem-vindo ao grupo." : "Convite recusado.", action === "accept" ? "ok" : "info");
+    toast(action === "accept" ? "Convite aceito — bem-vindo ao grupo." : "Convite recusado.", action === "accept" ? "ok" : "info");
     await Promise.all([loadGroups(), loadNotifications()]);
   } catch (err) {
     toast(err.message || "Falha ao responder ao convite.", "err");
@@ -2108,7 +2108,7 @@ async function handleGroupAction(e) {
     if (action === "rename") {
       const nextName = window.prompt("Novo nome do grupo:", btn.dataset.name || "");
       if (!nextName || !nextName.trim()) return;
-      if (!(await showConfirm("Renomear grupo", `Alterar o nome para «${nextName.trim()}»?`))) return;
+      if (!(await showConfirm("Renomear grupo", `Alterar o nome para "${nextName.trim()}"?`))) return;
       const res = await api("/api/groups/" + groupId, {
         method: "PATCH",
         body: JSON.stringify({ name: nextName.trim() }),
@@ -2126,15 +2126,15 @@ async function handleGroupAction(e) {
       if (!res.ok) throw new Error(await parseError(res));
       toast("Administração transferida.", "ok");
     } else if (action === "delete") {
-      if (!(await showConfirm("Apagar grupo", "Apagar este grupo para todos os membros? Esta ação não pode ser anulada.", { confirmText: "Apagar", danger: true }))) return;
+      if (!(await showConfirm("Apagar grupo", "Apagar este grupo para todos os membros? Esta ação não pode ser desfeita.", { confirmText: "Apagar", danger: true }))) return;
       const res = await api("/api/groups/" + groupId, { method: "DELETE" });
       if (!res.ok) throw new Error(await parseError(res));
       toast("Grupo apagado.", "ok");
     } else if (action === "leave") {
-      if (!(await showConfirm("Sair do grupo", "Tens a certeza que queres sair deste grupo?", { confirmText: "Sair", danger: true }))) return;
+      if (!(await showConfirm("Sair do grupo", "Tem certeza que deseja sair deste grupo?", { confirmText: "Sair", danger: true }))) return;
       const res = await api("/api/groups/" + groupId + "/leave", { method: "POST" });
       if (!res.ok) throw new Error(await parseError(res));
-      toast("Saíste do grupo.", "ok");
+      toast("Você saiu do grupo.", "ok");
     } else if (action === "remove-member") {
       const email = btn.dataset.email;
       if (!(await showConfirm("Remover membro", `Remover ${email} deste grupo?`, { confirmText: "Remover", danger: true }))) return;
@@ -2153,7 +2153,7 @@ async function tryAcceptPendingInviteToken() {
   try {
     const res = await api("/api/invites/token/" + encodeURIComponent(pendingInviteToken) + "/accept", { method: "POST" });
     if (res.ok) {
-      toast("Convite aceite — bem-vindo ao grupo.", "ok");
+      toast("Convite aceito — bem-vindo ao grupo.", "ok");
       pendingInviteToken = null;
       const url = new URL(window.location.href);
       url.searchParams.delete("invite");
@@ -2174,7 +2174,7 @@ async function loadInvitePreview() {
     banner.innerHTML = `
       <strong>Convite para ${escapeHtml(preview.groupName)}</strong>
       <p>${escapeHtml(preview.invitedByName)} convidou-te para este grupo no Chiclete.</p>
-      <p class="invite-preview-hint">${preview.requiresRegistration ? "Cria conta ou entra para aceitar." : "Entra para aceitar o convite."}</p>
+      <p class="invite-preview-hint">${preview.requiresRegistration ? "Crie conta ou entre para aceitar." : "Entre para aceitar o convite."}</p>
     `;
     if (preview.requiresRegistration) switchTab("register");
   } catch (_) {}
@@ -2196,7 +2196,7 @@ function focusActiveAlert() {
   toggleNotificationDrawer(false);
   const root = $("alert-banner-root");
   if (!root?.classList.contains("has-alerts")) {
-    toast("Tudo tranquilo — nenhum alerta por agora.", "ok");
+    toast("Tudo tranquilo — nenhum alerta por enquanto.", "ok");
     return;
   }
   root.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -2212,7 +2212,7 @@ function toggleNotificationDrawer(force) {
 }
 
 function doLogout() {
-  showConfirm("Terminar sessão", "Tens a certeza que queres sair da conta?", { confirmText: "Sair", danger: true }).then((ok) => {
+  showConfirm("Encerrar sessão", "Tem certeza que deseja sair da conta?", { confirmText: "Sair", danger: true }).then((ok) => {
     if (!ok) return;
     clearToken();
   stopNotificationPolling();
