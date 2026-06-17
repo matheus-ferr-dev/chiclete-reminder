@@ -171,6 +171,19 @@ function isMobile() {
   return window.innerWidth < 900;
 }
 
+function updateFabLabel() {
+  const fab = $("fab-add");
+  if (!fab) return;
+  fab.setAttribute("aria-label", currentView === "groups" ? "Criar grupo" : "Criar lembrete");
+}
+
+function updateGroupsMobileCreate() {
+  const btn = $("groups-mobile-create");
+  if (!btn) return;
+  const show = currentView === "groups" && isMobile() && allGroups.length > 0;
+  btn.classList.toggle("hidden", !show);
+}
+
 function openMobileSheet(panelEl, title) {
   if (!isMobile() || !panelEl) return;
   const home = { parent: panelEl.parentElement, next: panelEl.nextElementSibling };
@@ -396,6 +409,8 @@ function switchView(view) {
     loadWhatsappSimulations();
   }
   if (view === "reminders") loadChicleteStats();
+  updateFabLabel();
+  updateGroupsMobileCreate();
 }
 
 function toggleIntervalField(chewingCheckbox, wrapId) {
@@ -479,6 +494,18 @@ function handleSocialClick(e) {
 function backToLogin() {
   $("form-forgot").reset();
   switchTab("login");
+}
+
+function toggleLoginPasswordVisibility() {
+  const password = $("login-password");
+  const toggle = $("toggle-login-password");
+  if (!password || !toggle) return;
+
+  const shouldShow = password.type === "password";
+  password.type = shouldShow ? "text" : "password";
+  toggle.classList.toggle("is-visible", shouldShow);
+  toggle.setAttribute("aria-pressed", String(shouldShow));
+  toggle.setAttribute("aria-label", shouldShow ? "Ocultar senha" : "Mostrar senha");
 }
 
 function toIsoLocal(dtLocal) {
@@ -616,6 +643,20 @@ function updateStats(items) {
   $("stat-done").textContent = items.filter((r) => r.completed).length;
 }
 
+function syncFilterUI() {
+  document.querySelectorAll(".stat-filter").forEach((btn) => {
+    const active = btn.dataset.filter === currentFilter;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", String(active));
+  });
+}
+
+function setReminderFilter(filter) {
+  currentFilter = filter;
+  syncFilterUI();
+  renderReminders();
+}
+
 function filteredReminders() {
   let items = [...allReminders];
   if (currentFilter === "pending") items = items.filter((r) => !r.completed);
@@ -645,6 +686,7 @@ function renderReminders() {
   const items = filteredReminders();
 
   updateStats(allReminders);
+  syncFilterUI();
   $("list-count").textContent = items.length + (items.length === 1 ? " item" : " itens");
 
   ul.innerHTML = "";
@@ -887,14 +929,7 @@ function renderChicleteDashboard() {
   $("dash-bar-done").style.width = (chicleteStats.chewingCompleted / max) * 100 + "%";
   $("dash-bar-ignore").style.width = (chicleteStats.totalIgnores / max) * 100 + "%";
   const alerts = chicleteStats.totalAlerts;
-  $("dash-alerts-total").textContent =
-    alerts +
-    (alerts === 1 ? " alerta" : " alertas") +
-    " · " +
-    chicleteStats.chewingCompleted +
-    " concl. · " +
-    chicleteStats.totalIgnores +
-    " ignor.";
+  $("dash-alerts-total").textContent = alerts + (alerts === 1 ? " alerta" : " alertas");
 
   const panel = $("dash-panel");
   const toggle = $("dash-toggle");
@@ -1270,29 +1305,61 @@ async function handleReminderAction(e) {
   }
 }
 
+function memberInitial(email) {
+  const local = (email || "").split("@")[0];
+  return (local.charAt(0) || "?").toUpperCase();
+}
+
 function renderGroups() {
   const ul = $("group-list");
   const empty = $("empty-groups");
   ul.innerHTML = "";
-  $("group-count").textContent = allGroups.length + (allGroups.length === 1 ? " grupo" : " grupos");
+  const countLabel = allGroups.length === 1 ? "1 grupo" : `${allGroups.length} grupos`;
+  $("group-count").textContent = countLabel;
 
   if (!allGroups.length) {
     empty.classList.remove("hidden");
+    updateGroupsMobileCreate();
     return;
   }
   empty.classList.add("hidden");
+  updateGroupsMobileCreate();
+
+  const myEmail = (userProfile?.email || emailFromToken() || "").toLowerCase();
 
   for (const g of allGroups) {
     const li = document.createElement("li");
     li.className = "group-card";
-    const members = (g.memberEmails || [])
-      .map((e) => `<span class="member-tag">${escapeHtml(e)}</span>`)
+    const emails = g.memberEmails || [];
+    const memberCount = emails.length;
+    const countText = memberCount === 1 ? "1 membro" : `${memberCount} membros`;
+    const members = emails
+      .map((e) => {
+        const isMe = e.toLowerCase() === myEmail;
+        const label = isMe ? `${escapeHtml(e)} (tu)` : escapeHtml(e);
+        return `<span class="member-tag${isMe ? " member-tag-me" : ""}" title="${escapeHtml(e)}">
+          <span class="member-avatar" aria-hidden="true">${memberInitial(e)}</span>${label}
+        </span>`;
+      })
       .join("");
     li.innerHTML = `
-      <h3>${escapeHtml(g.name)}</h3>
+      <div class="group-card-head">
+        <span class="group-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </span>
+        <div class="group-card-title">
+          <h3>${escapeHtml(g.name)}</h3>
+          <span class="group-member-count">${countText}</span>
+        </div>
+      </div>
       <div class="member-list">${members || '<span class="member-tag">Sem membros</span>'}</div>
       <form class="group-add" data-group-id="${g.id}">
-        <input type="email" name="email" required placeholder="E-mail do membro" />
+        <input type="email" name="email" required placeholder="E-mail do membro" inputmode="email" autocomplete="email" />
         <button type="submit" class="btn btn-secondary btn-sm">Adicionar</button>
       </form>
     `;
@@ -1388,6 +1455,11 @@ async function doRegister(e) {
   const btn = $("btn-register");
   hideMsg(msg);
   const email = $("reg-email").value.trim();
+  const password = $("reg-password").value;
+  if (password !== $("reg-password2").value) {
+    showMsg(msg, "As senhas não coincidem.", "err");
+    return;
+  }
   setBtnLoading(btn, true);
   try {
     const res = await fetch("/api/auth/register", {
@@ -1396,7 +1468,7 @@ async function doRegister(e) {
       body: JSON.stringify({
         name: $("reg-name").value.trim(),
         email,
-        password: $("reg-password").value,
+        password,
       }),
     });
     if (!res.ok) {
@@ -1472,6 +1544,11 @@ async function doCreateGroup(e) {
   e.preventDefault();
   const btn = $("btn-create-group");
   const name = $("group-name").value.trim();
+  const inviteEmail = $("group-invite")?.value.trim() || "";
+  if (!name) {
+    toast("Dá um nome ao grupo.", "err");
+    return;
+  }
   setBtnLoading(btn, true);
   try {
     const res = await api("/api/groups", {
@@ -1479,9 +1556,30 @@ async function doCreateGroup(e) {
       body: JSON.stringify({ name }),
     });
     if (!res.ok) throw new Error(await parseError(res));
+    const created = await res.json();
+
+    if (inviteEmail) {
+      const memberRes = await api("/api/groups/" + created.id + "/members", {
+        method: "POST",
+        body: JSON.stringify({ email: inviteEmail }),
+      });
+      if (!memberRes.ok) {
+        $("group-name").value = "";
+        $("group-invite").value = "";
+        closeMobileSheet($("side-create-group"));
+        toast("Grupo criado, mas o convite falhou: " + (await parseError(memberRes)), "err");
+        await loadGroups();
+        return;
+      }
+    }
+
     $("group-name").value = "";
+    if ($("group-invite")) $("group-invite").value = "";
     closeMobileSheet($("side-create-group"));
-    toast("Grupo criado — hora de partilhar lembretes.", "ok");
+    toast(
+      inviteEmail ? "Grupo criado e convite enviado." : "Grupo criado — hora de partilhar lembretes.",
+      "ok"
+    );
     await loadGroups();
   } catch (err) {
     if (err.message !== "unauthorized") toast(err.message || "Falha ao criar grupo.", "err");
@@ -1496,6 +1594,12 @@ async function handleGroupAdd(e) {
   e.preventDefault();
   const groupId = form.dataset.groupId;
   const email = form.email.value.trim();
+  if (!email) {
+    toast("Introduz o e-mail do membro.", "err");
+    return;
+  }
+  const submitBtn = form.querySelector('button[type="submit"]');
+  setBtnLoading(submitBtn, true);
   try {
     const res = await api("/api/groups/" + groupId + "/members", {
       method: "POST",
@@ -1507,6 +1611,8 @@ async function handleGroupAdd(e) {
     await loadGroups();
   } catch (err) {
     toast(err.message || "Falha ao adicionar membro.", "err");
+  } finally {
+    setBtnLoading(submitBtn, false);
   }
 }
 
@@ -1531,6 +1637,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("auth-root")?.addEventListener("click", handleSocialClick);
   $("link-forgot").addEventListener("click", showForgot);
   $("back-to-login").addEventListener("click", backToLogin);
+  $("toggle-login-password")?.addEventListener("click", toggleLoginPasswordVisibility);
   $("form-login").addEventListener("submit", doLogin);
   $("form-forgot").addEventListener("submit", doForgotPassword);
   $("form-register").addEventListener("submit", doRegister);
@@ -1554,12 +1661,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
   $("fab-add").addEventListener("click", openCreateSheet);
+  $("groups-mobile-create")?.addEventListener("click", openCreateSheet);
   $("dash-toggle")?.addEventListener("click", toggleChicleteDashboard);
   $("empty-create-btn").addEventListener("click", openCreateSheet);
-  $("empty-group-btn").addEventListener("click", () => {
-    switchView("groups");
-    setTimeout(openCreateSheet, 200);
-  });
+  $("empty-group-btn").addEventListener("click", openCreateSheet);
 
   $("reminder-list").addEventListener("click", handleReminderAction);
   $("reminder-list").addEventListener("change", (e) => {
@@ -1573,13 +1678,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderReminders();
   });
 
-  document.querySelectorAll(".filter-chips .chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      document.querySelectorAll(".filter-chips .chip").forEach((c) => c.classList.remove("active"));
-      chip.classList.add("active");
-      currentFilter = chip.dataset.filter;
-      renderReminders();
-    });
+  document.querySelectorAll(".stat-filter").forEach((btn) => {
+    btn.addEventListener("click", () => setReminderFilter(btn.dataset.filter));
   });
 
   $("nr-when").value = defaultDateTimeLocal();
@@ -1595,6 +1695,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   await runSplash();
+
+  window.addEventListener("resize", updateGroupsMobileCreate);
 
   const t = getToken();
   if (t) {

@@ -9,7 +9,7 @@
     <title>Chiclete</title>
     <link rel="icon" href="/img/logo-icon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/img/logo-icon.png" />
-    <link rel="stylesheet" href="/css/app.css?v=9" />
+    <link rel="stylesheet" href="/css/app.css?v=11" />
   </head>
   <body>
     <!-- Splash animada (toda abertura do app) -->
@@ -86,7 +86,21 @@
                   <label for="login-email">E-mail</label>
                   <input id="login-email" type="email" autocomplete="username" required placeholder="tu@email.com" inputmode="email" />
                   <label for="login-password">Senha</label>
-                  <input id="login-password" type="password" autocomplete="current-password" required minlength="6" placeholder="••••••••" />
+                  <div class="password-field">
+                    <input id="login-password" type="password" autocomplete="current-password" required minlength="6" placeholder="••••••••" />
+                    <button type="button" id="toggle-login-password" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false">
+                      <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2.1 12s3.4-6.5 9.9-6.5S21.9 12 21.9 12s-3.4 6.5-9.9 6.5S2.1 12 2.1 12Z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                      <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m3 3 18 18"/>
+                        <path d="M10.6 5.7A9.2 9.2 0 0 1 12 5.5c6.5 0 9.9 6.5 9.9 6.5a17 17 0 0 1-2.7 3.6"/>
+                        <path d="M6.6 6.8A17.2 17.2 0 0 0 2.1 12s3.4 6.5 9.9 6.5c1.8 0 3.4-.5 4.8-1.2"/>
+                        <path d="M9.9 9.9A3 3 0 0 0 14.1 14"/>
+                      </svg>
+                    </button>
+                  </div>
                   <button type="submit" id="btn-login" class="btn btn-primary btn-block">Entrar</button>
                   <p class="forgot-row">
                     <button type="button" id="link-forgot" class="link-btn">Esqueci a senha</button>
@@ -131,6 +145,8 @@
                   <input id="reg-email" type="email" autocomplete="email" required placeholder="tu@email.com" inputmode="email" />
                   <label for="reg-password">Senha (mín. 6 caracteres)</label>
                   <input id="reg-password" type="password" autocomplete="new-password" required minlength="6" placeholder="••••••••" />
+                  <label for="reg-password2">Confirmar senha</label>
+                  <input id="reg-password2" type="password" autocomplete="new-password" required minlength="6" placeholder="••••••••" />
                   <button type="submit" id="btn-register" class="btn btn-primary btn-block">Criar conta e entrar</button>
                 </form>
                 <div class="auth-divider" aria-hidden="true"><span>ou continua com</span></div>
@@ -198,75 +214,71 @@
 
       <!-- Lembretes -->
       <div id="view-reminders" class="app-content">
-        <div class="reminders-overview">
-          <div class="stats-row">
-            <div class="stat-card">
-              <div id="stat-total" class="value">0</div>
-              <div class="label">Total</div>
-            </div>
-            <div class="stat-card accent">
-              <div id="stat-pending" class="value">0</div>
-              <div class="label">Pendentes</div>
-            </div>
-            <div class="stat-card warning">
-              <div id="stat-chewing" class="value">0</div>
-              <div class="label">Chiclete</div>
-            </div>
-            <div class="stat-card done">
-              <div id="stat-done" class="value">0</div>
-              <div class="label">Feitos</div>
-            </div>
+        <section class="reminders-summary" aria-label="Resumo e filtros">
+          <div class="stats-row" role="tablist" aria-label="Filtrar lembretes">
+            <button type="button" class="stat-card stat-filter active" data-filter="all" role="tab" aria-selected="true">
+              <span id="stat-total" class="value">0</span>
+              <span class="label">Total</span>
+            </button>
+            <button type="button" class="stat-card stat-filter accent" data-filter="pending" role="tab" aria-selected="false">
+              <span id="stat-pending" class="value">0</span>
+              <span class="label">Pendentes</span>
+            </button>
+            <button type="button" class="stat-card stat-filter warning" data-filter="chewing" role="tab" aria-selected="false">
+              <span id="stat-chewing" class="value">0</span>
+              <span class="label">Chiclete</span>
+            </button>
+            <button type="button" class="stat-card stat-filter done" data-filter="done" role="tab" aria-selected="false">
+              <span id="stat-done" class="value">0</span>
+              <span class="label">Feitos</span>
+            </button>
           </div>
 
           <div id="chiclete-dashboard" class="chiclete-dashboard hidden">
-          <button type="button" id="dash-toggle" class="dash-toggle" aria-expanded="false" aria-controls="dash-panel">
-            <span class="dash-toggle-main">
-              <span class="dash-toggle-label">Modo Chiclete</span>
-              <span id="dash-alerts-total" class="dash-summary">0 alertas</span>
-            </span>
-            <svg class="dash-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          <div id="dash-panel" class="dash-panel hidden">
-            <div class="dash-stats-inline">
-              <span><strong id="dash-val-done">0</strong> concluídos</span>
-              <span class="dash-dot" aria-hidden="true">·</span>
-              <span><strong id="dash-val-ignore">0</strong> ignorados</span>
-            </div>
-            <div class="dash-chart">
-              <div class="dash-bar-wrap">
-                <div class="dash-bar-label">Concluídos</div>
-                <div class="dash-bar-track"><div id="dash-bar-done" class="dash-bar done" style="width:0%"></div></div>
+            <button type="button" id="dash-toggle" class="dash-toggle" aria-expanded="false" aria-controls="dash-panel">
+              <span class="dash-toggle-left">
+                <span class="dash-icon" aria-hidden="true">🫧</span>
+                <span class="dash-toggle-label">Estatísticas Chiclete</span>
+              </span>
+              <span class="dash-toggle-right">
+                <span id="dash-alerts-total" class="dash-alert-badge">0 alertas</span>
+                <svg class="dash-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
+            </button>
+            <div id="dash-panel" class="dash-panel hidden">
+              <div class="dash-stats-inline">
+                <span><strong id="dash-val-done">0</strong> concluídos</span>
+                <span class="dash-dot" aria-hidden="true">·</span>
+                <span><strong id="dash-val-ignore">0</strong> ignorados</span>
               </div>
-              <div class="dash-bar-wrap">
-                <div class="dash-bar-label">Ignorados</div>
-                <div class="dash-bar-track"><div id="dash-bar-ignore" class="dash-bar ignore" style="width:0%"></div></div>
+              <div class="dash-chart">
+                <div class="dash-bar-wrap">
+                  <div class="dash-bar-label">Concluídos</div>
+                  <div class="dash-bar-track"><div id="dash-bar-done" class="dash-bar done" style="width:0%"></div></div>
+                </div>
+                <div class="dash-bar-wrap">
+                  <div class="dash-bar-label">Ignorados</div>
+                  <div class="dash-bar-track"><div id="dash-bar-ignore" class="dash-bar ignore" style="width:0%"></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        </div>
+        </section>
 
         <div class="app-grid">
           <section class="reminders-section">
             <div class="reminders-toolbar">
-              <div class="toolbar-row">
-                <div class="search-wrap">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>
-                  </svg>
-                  <input id="search-input" type="search" placeholder="Pesquisar…" autocomplete="off" />
-                </div>
+              <div class="toolbar-head">
+                <h2 class="section-title">Os teus lembretes</h2>
+                <span id="list-count" class="list-count">0 itens</span>
               </div>
-              <div class="filter-row">
-                <div class="filter-chips" role="tablist" aria-label="Filtrar lembretes">
-                  <button type="button" class="chip active" data-filter="all" role="tab">Todos</button>
-                  <button type="button" class="chip" data-filter="pending" role="tab">Pendentes</button>
-                  <button type="button" class="chip" data-filter="done" role="tab">Feitos</button>
-                  <button type="button" class="chip" data-filter="chewing" role="tab">Chiclete</button>
-                </div>
-                <span id="list-count" class="list-count">0</span>
+              <div class="search-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>
+                </svg>
+                <input id="search-input" type="search" placeholder="Pesquisar lembretes…" autocomplete="off" />
               </div>
             </div>
 
@@ -398,16 +410,22 @@
       <!-- Grupos -->
       <div id="view-groups" class="app-content hidden">
         <div class="app-grid">
-          <section>
-            <div class="section-head">
-              <h2>Grupos</h2>
-              <span id="group-count">0 grupos</span>
+          <section class="groups-section">
+            <div class="groups-toolbar">
+              <div class="toolbar-head">
+                <h2 class="section-title">Os teus grupos</h2>
+                <span id="group-count" class="list-count">0 grupos</span>
+              </div>
+              <p class="groups-toolbar-hint">Organiza quem recebe lembretes partilhados — família, equipa ou amigos.</p>
+              <button type="button" id="groups-mobile-create" class="btn btn-primary btn-block groups-mobile-create hidden" aria-label="Criar novo grupo">
+                Novo grupo
+              </button>
             </div>
-            <ul id="group-list" class="group-list"></ul>
+            <ul id="group-list" class="group-list" aria-live="polite"></ul>
             <div id="empty-groups" class="empty hidden">
               <img src="/img/logo.png" alt="" class="logo-img logo-brand" width="56" height="56" />
-              <p>Cria um grupo para partilhar com família ou equipa.</p>
-              <button type="button" id="empty-group-btn" class="btn btn-primary">Criar grupo</button>
+              <p>Ainda não tens grupos. Cria um para convidar pessoas e partilhar lembretes em conjunto.</p>
+              <button type="button" id="empty-group-btn" class="btn btn-primary">Criar primeiro grupo</button>
             </div>
           </section>
 
@@ -415,7 +433,10 @@
             <h2>Novo grupo</h2>
             <form id="form-group">
               <label for="group-name">Nome do grupo</label>
-              <input id="group-name" type="text" required maxlength="120" placeholder="Ex.: Família, Trabalho…" />
+              <input id="group-name" type="text" required maxlength="120" placeholder="Ex.: Família, Trabalho…" autocomplete="off" />
+              <label for="group-invite">Convidar por e-mail <span class="label-optional">(opcional)</span></label>
+              <input id="group-invite" type="email" inputmode="email" autocomplete="email" maxlength="200" placeholder="colega@email.com" />
+              <small class="field-hint">A pessoa precisa de ter conta no Chiclete. Podes adicionar mais membros depois.</small>
               <button type="submit" id="btn-create-group" class="btn btn-primary btn-block">Criar grupo</button>
             </form>
           </aside>
@@ -469,6 +490,6 @@
     <div id="modal-root"></div>
     <div id="sheet-root"></div>
 
-    <script src="/js/app.js?v=9"></script>
+    <script src="/js/app.js?v=11"></script>
   </body>
 </html>
