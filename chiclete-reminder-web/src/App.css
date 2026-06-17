@@ -1,0 +1,180 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #0f1419;
+  color: #e8eaed;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+a {
+  color: #8ab4f8;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 2rem;
+}
+
+.top {
+  margin-bottom: 1.5rem;
+}
+
+.brand {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e8eaed;
+}
+
+.card {
+  background: #1a2332;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.card.narrow {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.card.wide {
+  width: 100%;
+}
+
+h1,
+h2 {
+  margin-top: 0;
+  font-weight: 600;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.form.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem 1rem;
+}
+
+@media (max-width: 640px) {
+  .form.grid {
+    grid-template-columns: 1fr;
+  }
+  .form.grid .span2 {
+    grid-column: auto;
+  }
+}
+
+.form.grid .span2 {
+  grid-column: 1 / -1;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: #bdc1c6;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  border-radius: 8px;
+  border: 1px solid #3c4a5c;
+  background: #0f1419;
+  color: #e8eaed;
+  padding: 0.55rem 0.7rem;
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid #8ab4f8;
+  border-color: transparent;
+}
+
+button {
+  background: #8ab4f8;
+  color: #0f1419;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.25rem;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #3c4a5c;
+  color: #e8eaed;
+}
+
+button.small {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.6rem;
+  margin-top: 0;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.err {
+  color: #f28b82;
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.hint {
+  color: #9aa0a6;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
+section {
+  margin-bottom: 1.75rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #3c4a5c;
+}
+
+.list li.done {
+  opacity: 0.65;
+}
+
+.list small {
+  color: #9aa0a6;
+}
