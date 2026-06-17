@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -9,7 +9,7 @@
     <title>Chiclete</title>
     <link rel="icon" href="/img/logo-icon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/img/logo-icon.png" />
-    <link rel="stylesheet" href="/css/app.css?v=11" />
+    <link rel="stylesheet" href="/css/app.css?v=17" />
   </head>
   <body>
     <!-- Splash animada (toda abertura do app) -->
@@ -17,7 +17,7 @@
       <div class="splash-inner">
         <img src="/img/logo.png" alt="" class="splash-logo logo-brand" width="180" height="180" />
         <h1 class="splash-title">Chiclete</h1>
-        <p class="splash-tagline">O lembrete que <span class="brand-highlight">gruda</span> até você resolver.</p>
+        <p class="splash-tagline">O lembrete que <span class="brand-highlight">gruda</span> até resolveres.</p>
         <span class="brand-underline" aria-hidden="true"></span>
       </div>
       <div class="brand-wave" aria-hidden="true">
@@ -42,7 +42,7 @@
         <div class="auth-hero-content">
           <img src="/img/logo.png" alt="Chiclete" class="logo-img logo-brand auth-hero-logo" width="140" height="140" />
           <h1>Chiclete</h1>
-          <p class="auth-tagline">O lembrete que <span class="brand-highlight">gruda</span> até você resolver.</p>
+          <p class="auth-tagline">O lembrete que <span class="brand-highlight">gruda</span> até resolveres.</p>
           <span class="brand-underline" aria-hidden="true"></span>
         </div>
         <ul class="auth-features">
@@ -65,7 +65,7 @@
               <img src="/img/logo.png" alt="" class="logo-img logo-brand" width="52" height="52" />
               <div>
                 <h2>Chiclete</h2>
-                <p>O lembrete que <span class="brand-highlight">gruda</span> até você resolver.</p>
+                <p>O lembrete que <span class="brand-highlight">gruda</span> até resolveres.</p>
               </div>
             </header>
 
@@ -80,6 +80,7 @@
                 <button type="button" id="tab-register">Criar conta</button>
               </div>
               <div id="msg-auth" class="msg"></div>
+              <div id="invite-preview-banner" class="invite-preview-banner hidden" aria-live="polite"></div>
 
               <div id="panel-login" class="panel active">
                 <form id="form-login">
@@ -212,6 +213,14 @@
 
       <div id="alert-banner-root" class="alert-banner-root" aria-live="assertive"></div>
 
+      <aside id="notification-drawer" class="notification-drawer hidden" aria-label="Alertas" aria-hidden="true">
+        <div class="notification-drawer-head">
+          <h2>Alertas</h2>
+          <button type="button" id="btn-close-notifications" class="btn btn-ghost btn-sm" aria-label="Fechar">×</button>
+        </div>
+        <ul id="notification-drawer-list" class="notification-drawer-list"></ul>
+      </aside>
+
       <!-- Lembretes -->
       <div id="view-reminders" class="app-content">
         <section class="reminders-summary" aria-label="Resumo e filtros">
@@ -303,7 +312,7 @@
                 <input id="nr-repeat" type="checkbox" />
                 <label for="nr-repeat">
                   Repetir lembrete
-                  <small>Mantém-se ativo nos dias escolhidos. Pode desativar quando já não precisar.</small>
+                  <small>Mantém-se ativo nos dias escolhidos. Podes desativar quando já não precisares.</small>
                 </label>
               </div>
               <div id="nr-repeat-options" class="recurrence-panel hidden">
@@ -317,7 +326,7 @@
                   <label class="recurrence-mode">
                     <input type="radio" name="nr-recurrence-type" value="CUSTOM" />
                     <span class="recurrence-mode-title">Dias personalizados</span>
-                    <small>Escolha os dias</small>
+                    <small>Escolhe os dias</small>
                   </label>
                 </div>
                 <div id="nr-custom-days" class="day-chips hidden" aria-label="Dias da semana">
@@ -352,6 +361,20 @@
                   <option value="30" selected>30 minutos</option>
                   <option value="60">60 minutos</option>
                 </select>
+              </div>
+              <div id="nr-group-wrap" class="group-assign-panel hidden">
+                <p class="recurrence-label">Designar a um grupo</p>
+                <small class="field-hint">Como admin, podes criar a tarefa e atribuí-la a um membro.</small>
+                <label for="nr-group">Grupo</label>
+                <select id="nr-group">
+                  <option value="">— Sem grupo —</option>
+                </select>
+                <div id="nr-assignee-wrap" class="hidden">
+                  <label for="nr-assignee">Designar a</label>
+                  <select id="nr-assignee">
+                    <option value="">— Sem designação —</option>
+                  </select>
+                </div>
               </div>
               <button type="submit" id="btn-create-reminder" class="btn btn-primary btn-block">Criar lembrete</button>
             </form>
@@ -421,6 +444,13 @@
                 Novo grupo
               </button>
             </div>
+            <div id="group-invites-panel" class="group-invites-panel hidden">
+              <div class="section-head">
+                <h2>Convites pendentes</h2>
+                <span id="group-invite-count" class="list-count">0 convites</span>
+              </div>
+              <ul id="group-invite-list" class="group-invite-list" aria-live="polite"></ul>
+            </div>
             <ul id="group-list" class="group-list" aria-live="polite"></ul>
             <div id="empty-groups" class="empty hidden">
               <img src="/img/logo.png" alt="" class="logo-img logo-brand" width="56" height="56" />
@@ -436,7 +466,7 @@
               <input id="group-name" type="text" required maxlength="120" placeholder="Ex.: Família, Trabalho…" autocomplete="off" />
               <label for="group-invite">Convidar por e-mail <span class="label-optional">(opcional)</span></label>
               <input id="group-invite" type="email" inputmode="email" autocomplete="email" maxlength="200" placeholder="colega@email.com" />
-              <small class="field-hint">A pessoa precisa de ter conta no Chiclete. Podes adicionar mais membros depois.</small>
+              <small class="field-hint">A pessoa precisa de ter conta no Chiclete e aceitar o convite para entrar no grupo.</small>
               <button type="submit" id="btn-create-group" class="btn btn-primary btn-block">Criar grupo</button>
             </form>
           </aside>
@@ -490,6 +520,6 @@
     <div id="modal-root"></div>
     <div id="sheet-root"></div>
 
-    <script src="/js/app.js?v=11"></script>
+    <script src="/js/app.js?v=17"></script>
   </body>
 </html>

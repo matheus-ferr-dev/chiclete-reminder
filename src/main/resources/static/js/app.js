@@ -2,7 +2,11 @@ const TOKEN_KEY = "chiclete_token";
 
 let allReminders = [];
 let allGroups = [];
+let allGroupInvites = [];
+let groupSentInvites = {};
+let expandedGroups = new Set();
 let unreadNotifications = [];
+let pendingInviteToken = null;
 let userProfile = null;
 let chicleteStats = null;
 let audioCtx = null;
@@ -235,6 +239,7 @@ function openCreateSheet() {
 
   if (isMobile()) {
     openMobileSheet(panel, title);
+    if (!isGroup) refreshReminderGroupAssign();
     return;
   }
 
@@ -254,6 +259,71 @@ function openCreateSheet() {
     const firstInput = panel.querySelector("input, textarea, select");
     firstInput?.focus();
   }, needsViewSwitch ? 220 : 0);
+
+  if (!isGroup) refreshReminderGroupAssign();
+}
+
+function myEmail() {
+  return (userProfile?.email || emailFromToken() || "").toLowerCase();
+}
+
+function ownedGroups() {
+  const me = myEmail();
+  return allGroups.filter((g) => (g.ownerEmail || "").toLowerCase() === me);
+}
+
+function refreshReminderGroupAssign() {
+  const wrap = $("nr-group-wrap");
+  const groupSel = $("nr-group");
+  const memberSel = $("nr-assignee");
+  const assignWrap = $("nr-assignee-wrap");
+  if (!wrap || !groupSel || !memberSel) return;
+  const owned = ownedGroups();
+  if (!owned.length) {
+    wrap.classList.add("hidden");
+    groupSel.innerHTML = '<option value="">— Sem grupo —</option>';
+    memberSel.innerHTML = '<option value="">— Sem designação —</option>';
+    assignWrap?.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const prevGroup = groupSel.value;
+  groupSel.innerHTML =
+    '<option value="">— Sem grupo —</option>' +
+    owned.map((g) => `<option value="${g.id}">${escapeHtml(g.name)}</option>`).join("");
+  if (prevGroup && owned.some((g) => String(g.id) === prevGroup)) {
+    groupSel.value = prevGroup;
+  }
+  populateAssigneeOptions(groupSel.value);
+}
+
+function populateAssigneeOptions(groupId) {
+  const memberSel = $("nr-assignee");
+  const assignWrap = $("nr-assignee-wrap");
+  if (!memberSel) return;
+  if (!groupId) {
+    memberSel.innerHTML = '<option value="">— Sem designação —</option>';
+    memberSel.disabled = false;
+    assignWrap?.classList.add("hidden");
+    return;
+  }
+  const group = allGroups.find((g) => String(g.id) === String(groupId));
+  if (!group) {
+    assignWrap?.classList.add("hidden");
+    return;
+  }
+  assignWrap?.classList.remove("hidden");
+  const me = myEmail();
+  const others = (group.members || []).filter((m) => (m.email || "").toLowerCase() !== me);
+  if (!others.length) {
+    memberSel.innerHTML = '<option value="">Sem outros membros no grupo</option>';
+    memberSel.disabled = true;
+    return;
+  }
+  memberSel.disabled = false;
+  memberSel.innerHTML =
+    '<option value="">— Sem designação —</option>' +
+    others.map((m) => `<option value="${attrVal(m.email)}">${escapeHtml(m.name || m.email)}</option>`).join("");
 }
 
 function greetingFromEmail(email) {
@@ -318,7 +388,74 @@ async function parseError(res) {
     if (j.detail) return j.detail;
     if (j.message) return j.message;
   } catch (_) {}
+  if (res.status === 403) return "Não tens permissão para esta operação";
+  if (res.status === 400) return "Pedido inválido — verifica os dados e tenta novamente";
   return "Erro " + res.status;
+}
+
+function isGroupInviteNotification(n) {
+  return n && (n.type === "GROUP_INVITE" || (n.groupInviteId != null && !n.reminderId));
+}
+
+function pickBannerNotification() {
+  const reminder = unreadNotifications.find((n) => !isGroupInviteNotification(n));
+  if (reminder) return reminder;
+  return unreadNotifications.find(isGroupInviteNotification) || unreadNotifications[0];
+}
+
+function chicleteMarkIcon(extraClass = "") {
+  const cls = extraClass ? ` chiclete-mark ${extraClass}` : " chiclete-mark";
+  return `<span class="alert-icon${cls}" aria-hidden="true"><img src="/img/logo-icon.svg" alt="" width="32" height="32" decoding="async" /></span>`;
+}
+
+function formatAlertBannerMessage(top) {
+  const title = (top.reminderTitle || "Lembrete").trim();
+  const raw = (top.message || "").trim();
+  if (!raw) return top.chewing ? '<span class="alert-mode-tag">Modo Chiclete ativo</span>' : "";
+  let detail = raw;
+  if (detail.startsWith(title)) detail = detail.slice(title.length).trim();
+  detail = detail.replace(/^🫧\s*Chiclete\s*/i, "").replace(/\(ignorado \d+×\)\s*/i, "").trim();
+  if (!detail || detail.toLowerCase() === "chiclete") {
+    return top.chewing ? '<span class="alert-mode-tag">Modo Chiclete ativo</span>' : "";
+  }
+  if (detail === title) return "";
+  return `<p>${escapeHtml(detail)}</p>`;
+}
+
+function validId(id) {
+  if (id == null || id === "" || id === "null" || id === "undefined") return null;
+  const n = Number(id);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function buildInviteLink(token) {
+  return `${window.location.origin}/?invite=${encodeURIComponent(token)}`;
+}
+
+function inviteShareMessage(inv) {
+  const link = buildInviteLink(inv.inviteToken);
+  return `Foste convidado para o grupo "${inv.groupName}" no Chiclete. Abre o link para aceitar: ${link}`;
+}
+
+async function copyInviteLink(inv) {
+  const link = buildInviteLink(inv.inviteToken);
+  try {
+    await navigator.clipboard.writeText(link);
+    toast("Link copiado.", "ok");
+  } catch {
+    toast(link, "info");
+  }
+}
+
+function shareInviteWhatsApp(inv) {
+  const text = encodeURIComponent(inviteShareMessage(inv));
+  window.open(`https://wa.me/?text=${text}`, "_blank", "noopener");
+}
+
+function shareInviteEmail(inv) {
+  const subject = encodeURIComponent(`Convite para o grupo ${inv.groupName}`);
+  const body = encodeURIComponent(inviteShareMessage(inv));
+  window.location.href = `mailto:${encodeURIComponent(inv.invitedEmail || "")}?subject=${subject}&body=${body}`;
 }
 
 async function api(path, options) {
@@ -326,7 +463,7 @@ async function api(path, options) {
   if (res.status === 401) {
     clearToken();
     showAuth();
-    showMsg($("msg-auth"), "Sessão expirada. Entre novamente.", "err");
+    showMsg($("msg-auth"), "Sessão expirada. Entra novamente.", "err");
     throw new Error("unauthorized");
   }
   return res;
@@ -624,7 +761,7 @@ function readRecurrenceFromForm() {
       (chip) => chip.dataset.day
     );
     if (!selected.length) {
-      throw new Error("Selecione pelo menos um dia para a repetição personalizada.");
+      throw new Error("Seleciona pelo menos um dia para a repetição personalizada.");
     }
     return {
       recurrenceType: "CUSTOM",
@@ -807,7 +944,9 @@ async function loadReminders() {
 }
 
 async function setCompleted(id, completed) {
-  const res = await api("/api/reminders/" + id + "/complete", {
+  const rid = validId(id);
+  if (!rid) throw new Error("Lembrete inválido.");
+  const res = await api("/api/reminders/" + rid + "/complete", {
     method: "PATCH",
     body: JSON.stringify({ completed }),
   });
@@ -962,6 +1101,7 @@ function fillProfileForm(p) {
 
 async function saveProfile(e) {
   e.preventDefault();
+  if (!(await showConfirm("Guardar perfil", "Confirmas as alterações ao teu perfil e preferências de notificação?"))) return;
   const btn = $("btn-save-profile");
   setBtnLoading(btn, true);
   try {
@@ -994,11 +1134,17 @@ async function loadNotifications() {
     const prevIds = new Set(unreadNotifications.map((n) => n.id));
     unreadNotifications = incoming;
     renderAlertBanner();
+    renderNotificationDrawer();
     updateAlertBadge();
     const fresh = incoming.filter((n) => !prevIds.has(n.id));
     if (fresh.length > 0 && document.visibilityState === "visible") {
-      playChicleteAlert();
-      toast(`🫧 ${fresh.length} alerta(s) Chiclete`, "ok");
+      const inviteCount = fresh.filter(isGroupInviteNotification).length;
+      const reminderCount = fresh.length - inviteCount;
+      if (reminderCount > 0) playChicleteAlert();
+      if (inviteCount > 0) {
+        toast(`Convite${inviteCount > 1 ? "s" : ""} de grupo — vê no sino.`, "ok");
+        if (currentView === "groups") loadGroups();
+      }
       if (currentView === "profile") loadWhatsappSimulations();
     }
   } catch (e) {
@@ -1012,8 +1158,47 @@ function updateAlertBadge() {
   const badge = $("alert-badge");
   const count = unreadNotifications.length;
   if (!badge) return;
+  const chicleteCount = unreadNotifications.filter((n) => !isGroupInviteNotification(n)).length;
   badge.textContent = count > 9 ? "9+" : String(count);
   badge.classList.toggle("hidden", count === 0);
+  badge.classList.toggle("alert-badge-chiclete", chicleteCount > 0);
+  badge.classList.toggle("alert-badge-pulse", count > 0);
+}
+
+function renderNotificationDrawer() {
+  const drawer = $("notification-drawer");
+  const list = $("notification-drawer-list");
+  if (!drawer || !list) return;
+
+  const invites = unreadNotifications.filter(isGroupInviteNotification);
+  if (!invites.length) {
+    list.innerHTML = "";
+    if (!drawer.classList.contains("hidden")) toggleNotificationDrawer(false);
+    return;
+  }
+
+  list.innerHTML = `
+    <li class="notif-drawer-section"><span class="notif-drawer-label">Convites de grupo</span></li>` +
+    invites
+      .map((n) => {
+        const inviteId = validId(n.groupInviteId);
+        const actions = inviteId
+          ? `<button type="button" class="btn btn-primary btn-sm" data-alert-action="accept-invite" data-invite-id="${inviteId}">Aceitar</button>
+             <button type="button" class="btn btn-ghost btn-sm" data-alert-action="reject-invite" data-invite-id="${inviteId}" data-notif-id="${n.id}">Recusar</button>`
+          : `<button type="button" class="btn btn-ghost btn-sm" data-drawer-go-groups="1">Ver convites</button>`;
+        return `
+      <li class="notif-drawer-item notif-invite">
+        <div class="notif-drawer-icon notif-drawer-icon-invite" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="notif-drawer-body">
+          <strong>${escapeHtml(n.groupName || "Grupo")}</strong>
+          <p>${escapeHtml(n.message)}</p>
+        </div>
+        <div class="notif-drawer-actions">${actions}</div>
+      </li>`;
+      })
+      .join("");
 }
 
 function renderAlertBanner() {
@@ -1025,29 +1210,67 @@ function renderAlertBanner() {
     return;
   }
   root.classList.add("has-alerts");
-  const top = unreadNotifications[0];
+  const top = pickBannerNotification();
+  if (isGroupInviteNotification(top)) {
+    const inviteId = validId(top.groupInviteId);
+    const actions = inviteId
+      ? `<button type="button" class="btn btn-primary btn-sm" data-alert-action="accept-invite" data-invite-id="${inviteId}">Aceitar</button>
+         <button type="button" class="btn btn-ghost btn-sm" data-alert-action="reject-invite" data-invite-id="${inviteId}" data-notif-id="${top.id}">Recusar</button>`
+      : `<button type="button" class="btn btn-primary btn-sm" data-drawer-go-groups="1">Ver convites</button>`;
+    root.innerHTML = `
+    <div class="alert-banner alert-banner-invite alert-banner-featured">
+      <div class="alert-banner-glow" aria-hidden="true"></div>
+      <div class="alert-banner-accent" aria-hidden="true"></div>
+      <div class="alert-banner-body">
+        <span class="alert-icon alert-icon-invite" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        <div class="alert-banner-text">
+          <strong>Convite para ${escapeHtml(top.groupName || "grupo")}</strong>
+          <p>${escapeHtml(top.message)}</p>
+        </div>
+      </div>
+      <div class="alert-banner-actions">
+        ${actions}
+        ${unreadNotifications.length > 1 ? `<span class="alert-more">+${unreadNotifications.length - 1}</span>` : ""}
+      </div>
+    </div>
+  `;
+    return;
+  }
   const priority = priorityLabel(top.priorityAtSend);
+  const isHigh = ["ALTA", "URGENTE"].includes((top.priorityAtSend || "").toUpperCase());
+  const chewingClass = top.chewing ? " alert-banner-chewing" : "";
+  const featuredClass = isHigh || top.chewing ? " alert-banner-featured" : "";
+  const topReminderId = validId(top.reminderId);
+  const messageHtml = formatAlertBannerMessage(top);
   const waCompact = top.whatsappLink
     ? `<a href="${attrVal(top.whatsappLink)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm alert-wa-btn" title="WhatsApp">WA</a>`
     : "";
+  const chicleteOnly = unreadNotifications.filter((n) => !isGroupInviteNotification(n)).length;
+  const extraCount = Math.max(0, chicleteOnly - 1);
   root.innerHTML = `
-    <div class="alert-banner priority-${(top.priorityAtSend || "MEDIA").toLowerCase()}">
+    <div class="alert-banner priority-${(top.priorityAtSend || "MEDIA").toLowerCase()}${chewingClass}${featuredClass}">
+      <div class="alert-banner-glow" aria-hidden="true"></div>
+      <div class="alert-banner-accent" aria-hidden="true"></div>
       <div class="alert-banner-body">
-        <span class="alert-icon" aria-hidden="true">🫧</span>
+        ${top.chewing ? chicleteMarkIcon("chiclete-mark-pulse") : chicleteMarkIcon()}
         <div class="alert-banner-text">
-          <strong>${escapeHtml(top.reminderTitle)}</strong>
-          <p>${escapeHtml(top.message)}</p>
+          <strong>${escapeHtml(top.reminderTitle || "Lembrete")}</strong>
+          ${messageHtml}
           <span class="alert-priority-tag">${escapeHtml(priority)}</span>
         </div>
       </div>
       <div class="alert-banner-actions">
-        <button type="button" class="btn btn-primary btn-sm" data-alert-action="complete" data-id="${top.id}" data-reminder="${top.reminderId}">Concluir</button>
+        ${topReminderId
+          ? `<button type="button" class="btn btn-primary btn-sm" data-alert-action="complete" data-id="${top.id}" data-reminder="${topReminderId}">Concluir</button>`
+          : `<button type="button" class="btn btn-ghost btn-sm" data-alert-action="dismiss" data-id="${top.id}">Dispensar</button>`}
         <div class="alert-quick-actions">
           <button type="button" class="btn btn-ghost btn-sm" data-alert-action="snooze" data-id="${top.id}">Adiar</button>
           <button type="button" class="btn btn-ghost btn-sm" data-alert-action="dismiss" data-id="${top.id}">Ignorar</button>
           ${waCompact}
         </div>
-        ${unreadNotifications.length > 1 ? `<span class="alert-more">+${unreadNotifications.length - 1}</span>` : ""}
+        ${extraCount > 0 ? `<span class="alert-more">+${extraCount}</span>` : ""}
       </div>
     </div>
   `;
@@ -1056,11 +1279,36 @@ function renderAlertBanner() {
 async function handleAlertAction(e) {
   const btn = e.target.closest("[data-alert-action]");
   if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
   const action = btn.dataset.alertAction;
-  const notifId = Number(btn.dataset.id);
-  const reminderId = Number(btn.dataset.reminder);
+  const notifId = validId(btn.dataset.id);
+  const reminderId = validId(btn.dataset.reminder);
+  const inviteId = validId(btn.dataset.inviteId);
   try {
+    if (action === "accept-invite") {
+      if (!inviteId) throw new Error("Convite inválido — abre a seção Grupos.");
+      if (!(await showConfirm("Aceitar convite", "Entrar neste grupo e ver as tarefas partilhadas?"))) return;
+      const res = await api("/api/groups/invites/" + inviteId + "/accept", { method: "POST" });
+      if (!res.ok) throw new Error(await parseError(res));
+      toast("Convite aceite — já estás no grupo.", "ok");
+      await Promise.all([loadGroups(), loadNotifications()]);
+      return;
+    }
+    if (action === "reject-invite") {
+      if (!inviteId) throw new Error("Convite inválido.");
+      if (!(await showConfirm("Recusar convite", "Recusar este convite de grupo?", { confirmText: "Recusar", danger: true }))) return;
+      const res = await api("/api/groups/invites/" + inviteId + "/reject", { method: "POST" });
+      if (!res.ok) throw new Error(await parseError(res));
+      if (btn.dataset.notifId) {
+        await api("/api/notifications/" + btn.dataset.notifId + "/read", { method: "PATCH" });
+      }
+      toast("Convite recusado.", "ok");
+      await loadNotifications();
+      return;
+    }
     if (action === "complete") {
+      if (!reminderId) throw new Error("Lembrete inválido.");
       const updated = await setCompleted(reminderId, true);
       replaceReminder(updated);
       await api("/api/notifications/" + notifId + "/read", { method: "PATCH" });
@@ -1078,7 +1326,7 @@ async function handleAlertAction(e) {
     }
     await loadNotifications();
   } catch (err) {
-    toast(err.message || "Ação falhou.", "err");
+    toast(err.message || "Operação falhou.", "err");
   }
 }
 
@@ -1095,6 +1343,7 @@ function stopNotificationPolling() {
   }
   unreadNotifications = [];
   renderAlertBanner();
+  renderNotificationDrawer();
   updateAlertBadge();
 }
 
@@ -1131,6 +1380,37 @@ function removeReminder(id) {
   renderReminders();
 }
 
+function showConfirm(title, message, options = {}) {
+  const confirmText = options.confirmText || "Confirmar";
+  const cancelText = options.cancelText || "Cancelar";
+  const danger = options.danger || false;
+  const btnClass = danger ? "btn btn-danger" : "btn btn-primary";
+  return new Promise((resolve) => {
+    const root = $("modal-root");
+    const close = (result) => {
+      root.innerHTML = "";
+      resolve(result);
+    };
+    root.innerHTML = `
+      <div class="modal-backdrop" id="modal-backdrop">
+        <div class="modal" role="dialog" aria-labelledby="confirm-title">
+          <h3 id="confirm-title">${escapeHtml(title)}</h3>
+          <p>${escapeHtml(message)}</p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" id="modal-cancel">${escapeHtml(cancelText)}</button>
+            <button type="button" class="${btnClass}" id="modal-confirm">${escapeHtml(confirmText)}</button>
+          </div>
+        </div>
+      </div>
+    `;
+    $("modal-cancel").addEventListener("click", () => close(false));
+    $("modal-backdrop").addEventListener("click", (e) => {
+      if (e.target.id === "modal-backdrop") close(false);
+    });
+    $("modal-confirm").addEventListener("click", () => close(true));
+  });
+}
+
 function openModal(title, subtitle, fields, onSubmit) {
   const root = $("modal-root");
   root.innerHTML = `
@@ -1164,10 +1444,12 @@ function openModal(title, subtitle, fields, onSubmit) {
 function openShareModal(r) {
   openModal(
     "Partilhar lembrete",
-    `"${r.title}" — indica o e-mail de quem já tem conta.`,
+    "Indica o e-mail de quem já tem conta no Chiclete.",
     `<label for="share-email">E-mail</label><input id="share-email" name="email" type="email" required placeholder="colega@email.com" />`,
     async (fd, close) => {
-      const updated = await shareReminder(r.id, fd.get("email").trim());
+      const email = fd.get("email").trim();
+      if (!(await showConfirm("Partilhar lembrete", `Queres partilhar «${r.title}» com ${email}?`))) return;
+      const updated = await shareReminder(r.id, email);
       replaceReminder(updated);
       close();
       toast("Lembrete partilhado com sucesso.", "ok");
@@ -1218,8 +1500,10 @@ function openEditModal(r) {
     async (fd, close) => {
       const chewing = fd.get("chewing") === "on";
       const interval = chewing ? Number(fd.get("intervalMinutes")) || 30 : null;
+      const newTitle = fd.get("title").trim();
+      if (!(await showConfirm("Guardar alterações", `Atualizar o lembrete «${newTitle}»?`))) return;
       const body = {
-        title: fd.get("title").trim(),
+        title: newTitle,
         description: fd.get("description").trim() || null,
         scheduledAt: toIsoLocal(fd.get("scheduledAt")),
         chewing,
@@ -1295,7 +1579,7 @@ async function handleReminderAction(e) {
     } else if (action === "edit") {
       openEditModal(r);
     } else if (action === "delete") {
-      if (!confirm("Eliminar este lembrete?")) return;
+      if (!(await showConfirm("Eliminar lembrete", `Eliminar «${r.title}»? Esta ação não pode ser anulada.`, { confirmText: "Eliminar", danger: true }))) return;
       await deleteReminder(id);
       removeReminder(id);
       toast("Lembrete eliminado.", "ok");
@@ -1310,6 +1594,59 @@ function memberInitial(email) {
   return (local.charAt(0) || "?").toUpperCase();
 }
 
+function renderGroupInvites() {
+  const panel = $("group-invites-panel");
+  const ul = $("group-invite-list");
+  if (!panel || !ul) return;
+  const countLabel = allGroupInvites.length === 1 ? "1 convite" : `${allGroupInvites.length} convites`;
+  $("group-invite-count").textContent = countLabel;
+  if (!allGroupInvites.length) {
+    panel.classList.add("hidden");
+    ul.innerHTML = "";
+    return;
+  }
+  panel.classList.remove("hidden");
+  ul.innerHTML = allGroupInvites
+    .map(
+      (inv) => `
+    <li class="group-invite-card">
+      <div class="group-invite-body">
+        <strong>${escapeHtml(inv.groupName)}</strong>
+        <p>Convite de ${escapeHtml(inv.invitedByName || inv.invitedByEmail)}</p>
+        <span class="group-invite-meta">${formatSchedule(inv.createdAt)}</span>
+      </div>
+      <div class="group-invite-actions">
+        <button type="button" class="btn btn-primary btn-sm" data-group-invite-action="accept" data-invite-id="${inv.id}">Aceitar</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-group-invite-action="reject" data-invite-id="${inv.id}">Recusar</button>
+      </div>
+    </li>`
+    )
+    .join("");
+}
+
+function renderSentInvites(groupId, invites) {
+  if (!invites.length) {
+    return '<p class="group-pending-empty">Nenhum convite pendente enviado.</p>';
+  }
+  return invites
+    .map(
+      (inv) => `
+    <div class="group-pending-item">
+      <div>
+        <strong>${escapeHtml(inv.invitedEmail)}</strong>
+        <span class="group-invite-meta">${formatSchedule(inv.createdAt)} · aguardando</span>
+      </div>
+      <div class="group-pending-actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-group-action="share-wa" data-token="${attrVal(inv.inviteToken)}" data-group-name="${attrVal(inv.groupName)}" data-email="${attrVal(inv.invitedEmail)}">WhatsApp</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-group-action="share-email" data-token="${attrVal(inv.inviteToken)}" data-group-name="${attrVal(inv.groupName)}" data-email="${attrVal(inv.invitedEmail)}">E-mail</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-group-action="copy-link" data-token="${attrVal(inv.inviteToken)}" data-group-name="${attrVal(inv.groupName)}">Copiar link</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-group-action="cancel-invite" data-group-id="${groupId}" data-invite-id="${inv.id}">Cancelar</button>
+      </div>
+    </div>`
+    )
+    .join("");
+}
+
 function renderGroups() {
   const ul = $("group-list");
   const empty = $("empty-groups");
@@ -1320,6 +1657,7 @@ function renderGroups() {
   if (!allGroups.length) {
     empty.classList.remove("hidden");
     updateGroupsMobileCreate();
+    renderGroupInvites();
     return;
   }
   empty.classList.add("hidden");
@@ -1329,19 +1667,43 @@ function renderGroups() {
 
   for (const g of allGroups) {
     const li = document.createElement("li");
-    li.className = "group-card";
-    const emails = g.memberEmails || [];
-    const memberCount = emails.length;
+    const isExpanded = expandedGroups.has(String(g.id));
+    li.className = "group-card" + (isExpanded ? " group-card-expanded" : "");
+    li.dataset.groupId = g.id;
+    const memberRows = (g.members && g.members.length ? g.members : (g.memberEmails || []).map((e) => ({ email: e, name: e, admin: (g.ownerEmail || "").toLowerCase() === e.toLowerCase() })));
+    const memberCount = memberRows.length;
     const countText = memberCount === 1 ? "1 membro" : `${memberCount} membros`;
-    const members = emails
-      .map((e) => {
+    const isOwner = (g.ownerEmail || "").toLowerCase() === myEmail;
+    const members = memberRows
+      .map((m) => {
+        const e = m.email;
         const isMe = e.toLowerCase() === myEmail;
+        const adminBadge = m.admin ? '<span class="member-admin-badge">Admin</span>' : "";
         const label = isMe ? `${escapeHtml(e)} (tu)` : escapeHtml(e);
-        return `<span class="member-tag${isMe ? " member-tag-me" : ""}" title="${escapeHtml(e)}">
-          <span class="member-avatar" aria-hidden="true">${memberInitial(e)}</span>${label}
+        const removeBtn = isOwner && !isMe
+          ? `<button type="button" class="member-remove" data-group-action="remove-member" data-group-id="${g.id}" data-email="${attrVal(e)}" title="Remover membro">×</button>`
+          : "";
+        return `<span class="member-tag${isMe ? " member-tag-me" : ""}">
+          <span class="member-avatar" aria-hidden="true">${memberInitial(e)}</span>${label}${adminBadge}${removeBtn}
         </span>`;
       })
       .join("");
+    const sentInvites = groupSentInvites[g.id] || [];
+    const managePanel = isExpanded
+      ? `<div class="group-manage-panel">
+          <h4>Membros ativos</h4>
+          <div class="member-list">${members || '<span class="member-tag">Sem membros</span>'}</div>
+          ${isOwner ? `<h4>Convites pendentes (${sentInvites.length})</h4>
+          <div class="group-pending-list">${renderSentInvites(g.id, sentInvites)}</div>
+          <div class="group-manage-actions">
+            <button type="button" class="btn btn-ghost btn-sm" data-group-action="rename" data-group-id="${g.id}" data-name="${attrVal(g.name)}">Renomear</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-group-action="transfer" data-group-id="${g.id}">Transferir admin</button>
+            <button type="button" class="btn btn-ghost btn-sm group-danger" data-group-action="delete" data-group-id="${g.id}">Apagar grupo</button>
+          </div>` : `<div class="group-manage-actions">
+            <button type="button" class="btn btn-ghost btn-sm" data-group-action="leave" data-group-id="${g.id}">Sair do grupo</button>
+          </div>`}
+        </div>`
+      : "";
     li.innerHTML = `
       <div class="group-card-head">
         <span class="group-icon" aria-hidden="true">
@@ -1354,29 +1716,50 @@ function renderGroups() {
         </span>
         <div class="group-card-title">
           <h3>${escapeHtml(g.name)}</h3>
-          <span class="group-member-count">${countText}</span>
+          <span class="group-member-count">${countText}${isOwner ? ' · <span class="member-admin-badge">Admin</span>' : ""}</span>
         </div>
+        <button type="button" class="btn btn-ghost btn-sm group-toggle" data-group-action="toggle" data-group-id="${g.id}" aria-expanded="${isExpanded}">
+          ${isExpanded ? "Fechar" : "Gerir"}
+        </button>
       </div>
-      <div class="member-list">${members || '<span class="member-tag">Sem membros</span>'}</div>
+      ${!isExpanded ? `<div class="member-list member-list-compact">${members}</div>` : ""}
       <form class="group-add" data-group-id="${g.id}">
-        <input type="email" name="email" required placeholder="E-mail do membro" inputmode="email" autocomplete="email" />
-        <button type="submit" class="btn btn-secondary btn-sm">Adicionar</button>
+        <input type="email" name="email" required placeholder="E-mail do convidado" inputmode="email" autocomplete="email" />
+        <button type="submit" class="btn btn-secondary btn-sm">Convidar</button>
       </form>
+      ${managePanel}
     `;
     ul.appendChild(li);
+  }
+  renderGroupInvites();
+}
+
+async function loadGroupSentInvites(groupId) {
+  const gid = validId(groupId);
+  if (!gid) return [];
+  try {
+    const res = await api(`/api/groups/${gid}/invites/sent`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    groupSentInvites[gid] = data;
+    return data;
+  } catch {
+    return [];
   }
 }
 
 async function loadGroups() {
   showGroupSkeleton();
   try {
-    const res = await api("/api/groups");
-    if (!res.ok) {
-      toast(await parseError(res), "err");
+    const [groupsRes, invitesRes] = await Promise.all([api("/api/groups"), api("/api/groups/invites")]);
+    if (!groupsRes.ok) {
+      toast(await parseError(groupsRes), "err");
       return;
     }
-    allGroups = await res.json();
+    allGroups = await groupsRes.json();
+    allGroupInvites = invitesRes.ok ? await invitesRes.json() : [];
     renderGroups();
+    refreshReminderGroupAssign();
   } catch (e) {
     if (e.message !== "unauthorized") toast("Erro ao carregar grupos.", "err");
   }
@@ -1405,8 +1788,9 @@ async function doLogin(e) {
     setToken(data.token);
     showLoader();
     showApp($("login-email").value.trim() || emailFromToken());
-    await Promise.all([loadReminders(), loadProfile()]);
+    await Promise.all([loadReminders(), loadProfile(), loadGroups()]);
     startNotificationPolling();
+    await tryAcceptPendingInviteToken();
   } catch {
     showMsg(msg, "Não foi possível conectar ao servidor.", "err");
   } finally {
@@ -1462,14 +1846,16 @@ async function doRegister(e) {
   }
   setBtnLoading(btn, true);
   try {
+    const body = {
+      name: $("reg-name").value.trim(),
+      email,
+      password,
+    };
+    if (pendingInviteToken) body.inviteToken = pendingInviteToken;
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: $("reg-name").value.trim(),
-        email,
-        password,
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       showMsg(msg, await parseError(res), "err");
@@ -1477,9 +1863,13 @@ async function doRegister(e) {
     }
     const data = await res.json();
     setToken(data.token);
+    pendingInviteToken = null;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("invite");
+    window.history.replaceState({}, "", url.pathname + url.search);
     showLoader();
     showApp(email || emailFromToken());
-    await Promise.all([loadReminders(), loadProfile()]);
+    await Promise.all([loadReminders(), loadProfile(), loadGroups()]);
     startNotificationPolling();
   } catch {
     showMsg(msg, "Não foi possível conectar ao servidor.", "err");
@@ -1507,21 +1897,36 @@ async function doCreateReminder(e) {
     return;
   }
 
+  const groupIdVal = $("nr-group")?.value || "";
+  const assigneeEmail = ($("nr-assignee")?.value || "").trim();
+  const group = groupIdVal ? allGroups.find((g) => String(g.id) === groupIdVal) : null;
+  let confirmMsg = `Criar o lembrete «${title}»?`;
+  if (assigneeEmail && group) {
+    confirmMsg = `Criar «${title}» e designar a ${assigneeEmail} no grupo «${group.name}»?`;
+  } else if (group) {
+    confirmMsg = `Criar o lembrete «${title}» no grupo «${group.name}» (sem designação)?`;
+  }
+  if (!(await showConfirm("Criar lembrete", confirmMsg))) return;
+
   setBtnLoading(btn, true);
   try {
+    const body = {
+      title,
+      description: $("nr-desc").value.trim() || null,
+      scheduledAt,
+      chewing,
+      intervalMinutes: chewing ? (Number($("nr-interval").value) || 30) : null,
+      priority: $("nr-priority").value,
+      recurrenceType: recurrence.recurrenceType,
+      recurrenceDays: recurrence.recurrenceDays,
+      recurringEnabled: recurrence.recurringEnabled,
+    };
+    if (groupIdVal) body.groupId = Number(groupIdVal);
+    if (assigneeEmail) body.assigneeEmail = assigneeEmail;
+
     const res = await api("/api/reminders", {
       method: "POST",
-      body: JSON.stringify({
-        title,
-        description: $("nr-desc").value.trim() || null,
-        scheduledAt,
-        chewing,
-        intervalMinutes: chewing ? (Number($("nr-interval").value) || 30) : null,
-        priority: $("nr-priority").value,
-        recurrenceType: recurrence.recurrenceType,
-        recurrenceDays: recurrence.recurrenceDays,
-        recurringEnabled: recurrence.recurringEnabled,
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(await parseError(res));
     $("nr-title").value = "";
@@ -1530,8 +1935,13 @@ async function doCreateReminder(e) {
     $("nr-chewing").checked = false;
     toggleIntervalField($("nr-chewing"), "nr-interval-wrap");
     resetRecurrenceForm();
+    if ($("nr-group")) $("nr-group").value = "";
+    populateAssigneeOptions("");
     closeMobileSheet($("side-create-reminder"));
-    toast("Lembrete criado — o Chiclete já está de olho.", "ok");
+    toast(
+      assigneeEmail ? "Lembrete criado e designado ao membro." : "Lembrete criado — o Chiclete já está de olho.",
+      "ok"
+    );
     await loadReminders();
   } catch (err) {
     if (err.message !== "unauthorized") toast(err.message || "Falha ao criar lembrete.", "err");
@@ -1549,6 +1959,10 @@ async function doCreateGroup(e) {
     toast("Dá um nome ao grupo.", "err");
     return;
   }
+  const confirmMsg = inviteEmail
+    ? `Criar o grupo «${name}» e enviar convite para ${inviteEmail}?`
+    : `Criar o grupo «${name}»?`;
+  if (!(await showConfirm("Criar grupo", confirmMsg))) return;
   setBtnLoading(btn, true);
   try {
     const res = await api("/api/groups", {
@@ -1598,6 +2012,7 @@ async function handleGroupAdd(e) {
     toast("Introduz o e-mail do membro.", "err");
     return;
   }
+  if (!(await showConfirm("Convidar membro", `Enviar convite para ${email}?`))) return;
   const submitBtn = form.querySelector('button[type="submit"]');
   setBtnLoading(submitBtn, true);
   try {
@@ -1607,7 +2022,9 @@ async function handleGroupAdd(e) {
     });
     if (!res.ok) throw new Error(await parseError(res));
     form.reset();
-    toast("Membro adicionado.", "ok");
+    toast("Convite enviado — aguarda a aceitação.", "ok");
+    const gid = validId(groupId);
+    if (gid && expandedGroups.has(String(gid))) await loadGroupSentInvites(gid);
     await loadGroups();
   } catch (err) {
     toast(err.message || "Falha ao adicionar membro.", "err");
@@ -1616,11 +2033,194 @@ async function handleGroupAdd(e) {
   }
 }
 
+async function handleGroupInviteAction(e) {
+  const btn = e.target.closest("[data-group-invite-action]");
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const action = btn.dataset.groupInviteAction;
+  const inviteId = validId(btn.dataset.inviteId);
+  if (!inviteId) {
+    toast("Convite inválido.", "err");
+    return;
+  }
+  const isAccept = action === "accept";
+  const ok = await showConfirm(
+    isAccept ? "Aceitar convite" : "Recusar convite",
+    isAccept ? "Entrar neste grupo?" : "Recusar este convite de grupo?",
+    isAccept ? {} : { confirmText: "Recusar", danger: true }
+  );
+  if (!ok) return;
+  setBtnLoading(btn, true);
+  try {
+    const endpoint = action === "accept" ? "accept" : "reject";
+    const res = await api(`/api/groups/invites/${inviteId}/${endpoint}`, { method: "POST" });
+    if (!res.ok) throw new Error(await parseError(res));
+    toast(action === "accept" ? "Convite aceite — bem-vindo ao grupo." : "Convite recusado.", action === "accept" ? "ok" : "info");
+    await Promise.all([loadGroups(), loadNotifications()]);
+  } catch (err) {
+    toast(err.message || "Falha ao responder ao convite.", "err");
+  } finally {
+    setBtnLoading(btn, false);
+  }
+}
+
+async function handleGroupAction(e) {
+  const btn = e.target.closest("[data-group-action]");
+  if (!btn) return;
+  const action = btn.dataset.groupAction;
+  const groupId = validId(btn.dataset.groupId);
+  if (!groupId && !["share-wa", "share-email", "copy-link"].includes(action)) return;
+  try {
+    if (action === "toggle") {
+      const key = String(groupId);
+      if (expandedGroups.has(key)) expandedGroups.delete(key);
+      else {
+        expandedGroups.add(key);
+        await loadGroupSentInvites(groupId);
+      }
+      renderGroups();
+      return;
+    }
+    if (action === "share-wa") {
+      shareInviteWhatsApp({ inviteToken: btn.dataset.token, groupName: btn.dataset.groupName, invitedEmail: btn.dataset.email });
+      return;
+    }
+    if (action === "share-email") {
+      shareInviteEmail({ inviteToken: btn.dataset.token, groupName: btn.dataset.groupName, invitedEmail: btn.dataset.email });
+      return;
+    }
+    if (action === "copy-link") {
+      await copyInviteLink({ inviteToken: btn.dataset.token, groupName: btn.dataset.groupName });
+      return;
+    }
+    if (action === "cancel-invite") {
+      const inviteId = validId(btn.dataset.inviteId);
+      if (!inviteId) return;
+      if (!(await showConfirm("Cancelar convite", "Cancelar este convite pendente?", { confirmText: "Cancelar convite", danger: true }))) return;
+      const res = await api(`/api/groups/${groupId}/invites/${inviteId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await parseError(res));
+      toast("Convite cancelado.", "ok");
+      await loadGroupSentInvites(groupId);
+      renderGroups();
+      return;
+    }
+    if (action === "rename") {
+      const nextName = window.prompt("Novo nome do grupo:", btn.dataset.name || "");
+      if (!nextName || !nextName.trim()) return;
+      if (!(await showConfirm("Renomear grupo", `Alterar o nome para «${nextName.trim()}»?`))) return;
+      const res = await api("/api/groups/" + groupId, {
+        method: "PATCH",
+        body: JSON.stringify({ name: nextName.trim() }),
+      });
+      if (!res.ok) throw new Error(await parseError(res));
+      toast("Grupo renomeado.", "ok");
+    } else if (action === "transfer") {
+      const email = window.prompt("E-mail do novo admin (precisa ser membro):");
+      if (!email || !email.trim()) return;
+      if (!(await showConfirm("Transferir admin", `Tornar ${email.trim()} admin deste grupo?`))) return;
+      const res = await api("/api/groups/" + groupId + "/transfer-owner", {
+        method: "POST",
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!res.ok) throw new Error(await parseError(res));
+      toast("Administração transferida.", "ok");
+    } else if (action === "delete") {
+      if (!(await showConfirm("Apagar grupo", "Apagar este grupo para todos os membros? Esta ação não pode ser anulada.", { confirmText: "Apagar", danger: true }))) return;
+      const res = await api("/api/groups/" + groupId, { method: "DELETE" });
+      if (!res.ok) throw new Error(await parseError(res));
+      toast("Grupo apagado.", "ok");
+    } else if (action === "leave") {
+      if (!(await showConfirm("Sair do grupo", "Tens a certeza que queres sair deste grupo?", { confirmText: "Sair", danger: true }))) return;
+      const res = await api("/api/groups/" + groupId + "/leave", { method: "POST" });
+      if (!res.ok) throw new Error(await parseError(res));
+      toast("Saíste do grupo.", "ok");
+    } else if (action === "remove-member") {
+      const email = btn.dataset.email;
+      if (!(await showConfirm("Remover membro", `Remover ${email} deste grupo?`, { confirmText: "Remover", danger: true }))) return;
+      const res = await api("/api/groups/" + groupId + "/members/" + encodeURIComponent(email), { method: "DELETE" });
+      if (!res.ok) throw new Error(await parseError(res));
+      toast("Membro removido.", "ok");
+    }
+    await loadGroups();
+  } catch (err) {
+    toast(err.message || "Falha na operação do grupo.", "err");
+  }
+}
+
+async function tryAcceptPendingInviteToken() {
+  if (!pendingInviteToken || !getToken()) return;
+  try {
+    const res = await api("/api/invites/token/" + encodeURIComponent(pendingInviteToken) + "/accept", { method: "POST" });
+    if (res.ok) {
+      toast("Convite aceite — bem-vindo ao grupo.", "ok");
+      pendingInviteToken = null;
+      const url = new URL(window.location.href);
+      url.searchParams.delete("invite");
+      window.history.replaceState({}, "", url.pathname + url.search);
+      await loadGroups();
+    }
+  } catch (_) {}
+}
+
+async function loadInvitePreview() {
+  const banner = $("invite-preview-banner");
+  if (!pendingInviteToken || !banner) return;
+  try {
+    const res = await fetch("/api/invites/token/" + encodeURIComponent(pendingInviteToken));
+    if (!res.ok) return;
+    const preview = await res.json();
+    banner.classList.remove("hidden");
+    banner.innerHTML = `
+      <strong>Convite para ${escapeHtml(preview.groupName)}</strong>
+      <p>${escapeHtml(preview.invitedByName)} convidou-te para este grupo no Chiclete.</p>
+      <p class="invite-preview-hint">${preview.requiresRegistration ? "Cria conta ou entra para aceitar." : "Entra para aceitar o convite."}</p>
+    `;
+    if (preview.requiresRegistration) switchTab("register");
+  } catch (_) {}
+}
+
+function captureInviteFromUrl() {
+  const token = new URLSearchParams(window.location.search).get("invite");
+  if (token) pendingInviteToken = token.trim();
+}
+
+function flashAlertBanner() {
+  const root = $("alert-banner-root");
+  if (!root) return;
+  root.classList.add("alert-banner-flash");
+  window.setTimeout(() => root.classList.remove("alert-banner-flash"), 1400);
+}
+
+function focusActiveAlert() {
+  toggleNotificationDrawer(false);
+  const root = $("alert-banner-root");
+  if (!root?.classList.contains("has-alerts")) {
+    toast("Tudo tranquilo — nenhum alerta por agora.", "ok");
+    return;
+  }
+  root.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  flashAlertBanner();
+}
+
+function toggleNotificationDrawer(force) {
+  const drawer = $("notification-drawer");
+  if (!drawer) return;
+  const open = typeof force === "boolean" ? force : drawer.classList.contains("hidden");
+  drawer.classList.toggle("hidden", !open);
+  drawer.setAttribute("aria-hidden", open ? "false" : "true");
+}
+
 function doLogout() {
-  clearToken();
+  showConfirm("Terminar sessão", "Tens a certeza que queres sair da conta?", { confirmText: "Sair", danger: true }).then((ok) => {
+    if (!ok) return;
+    clearToken();
   stopNotificationPolling();
   allReminders = [];
   allGroups = [];
+  allGroupInvites = [];
+  groupSentInvites = {};
+  expandedGroups = new Set();
   userProfile = null;
   $("login-email").value = "";
   $("login-password").value = "";
@@ -1629,6 +2229,7 @@ function doLogout() {
   closeMobileSheet($("side-create-group"));
   switchView("reminders");
   showAuth();
+  });
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -1653,13 +2254,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("bn-profile")?.addEventListener("click", () => switchView("profile"));
   $("form-profile").addEventListener("submit", saveProfile);
   $("alert-banner-root").addEventListener("click", handleAlertAction);
-  $("btn-notifications").addEventListener("click", () => {
-    if (unreadNotifications.length) {
-      $("alert-banner-root").scrollIntoView({ behavior: "smooth", block: "nearest" });
-    } else {
-      toast("Tudo tranquilo — nenhum Chiclete a chamar.", "ok");
+  $("notification-drawer")?.addEventListener("click", (e) => {
+    if (e.target.closest("[data-drawer-go-groups]")) {
+      switchView("groups");
+      toggleNotificationDrawer(false);
+      return;
     }
+    handleAlertAction(e);
   });
+  $("btn-notifications").addEventListener("click", () => {
+    const invites = unreadNotifications.filter(isGroupInviteNotification);
+    if (invites.length) {
+      const drawer = $("notification-drawer");
+      const open = drawer?.classList.contains("hidden");
+      toggleNotificationDrawer(open);
+      if (open) renderNotificationDrawer();
+      return;
+    }
+    focusActiveAlert();
+  });
+  $("btn-close-notifications")?.addEventListener("click", () => toggleNotificationDrawer(false));
   $("fab-add").addEventListener("click", openCreateSheet);
   $("groups-mobile-create")?.addEventListener("click", openCreateSheet);
   $("dash-toggle")?.addEventListener("click", toggleChicleteDashboard);
@@ -1672,6 +2286,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   $("group-list").addEventListener("submit", handleGroupAdd);
+  $("group-list").addEventListener("click", handleGroupAction);
+  $("group-invite-list")?.addEventListener("click", handleGroupInviteAction);
 
   $("search-input").addEventListener("input", (e) => {
     searchQuery = e.target.value.trim();
@@ -1693,17 +2309,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!chip) return;
     chip.classList.toggle("active");
   });
+  $("nr-group")?.addEventListener("change", (e) => populateAssigneeOptions(e.target.value));
 
   await runSplash();
 
   window.addEventListener("resize", updateGroupsMobileCreate);
 
+  captureInviteFromUrl();
+  await loadInvitePreview();
+
   const t = getToken();
   if (t) {
     showLoader();
     showApp(emailFromToken());
-    Promise.all([loadReminders(), loadProfile()])
-      .then(() => startNotificationPolling())
+    Promise.all([loadReminders(), loadProfile(), loadGroups()])
+      .then(() => {
+        startNotificationPolling();
+        return tryAcceptPendingInviteToken();
+      })
       .finally(hideLoader);
   } else {
     showAuth();
