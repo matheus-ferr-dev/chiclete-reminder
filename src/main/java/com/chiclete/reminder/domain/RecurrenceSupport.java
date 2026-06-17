@@ -45,7 +45,7 @@ public final class RecurrenceSupport {
         }
         Set<Integer> days = parseDaySet(recurrenceDays);
         if (days.isEmpty()) {
-            throw new DomainRuleException("Selecione pelo menos um dia para a repetição personalizada");
+            throw new DomainRuleException("Seleciona pelo menos um dia para a repetição personalizada");
         }
         return days.stream()
                 .sorted()

@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.stream.Collectors;
@@ -41,6 +42,13 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleIllegalState(IllegalStateException ex) {
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
         pd.setDetail(ex.getMessage());
+        return pd;
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        pd.setDetail("Parâmetro inválido na requisição");
         return pd;
     }
 

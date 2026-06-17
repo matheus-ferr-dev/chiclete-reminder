@@ -19,22 +19,26 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
+    private final GroupService groupService;
+
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            AuthenticationManager authenticationManager
+            AuthenticationManager authenticationManager,
+            GroupService groupService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.groupService = groupService;
     }
 
     @Transactional
     public TokenResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new DomainRuleException("E-mail já cadastrado");
+            throw new DomainRuleException("E-mail já registado");
         }
         User user = new User();
         user.setName(request.name());
@@ -42,6 +46,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole("COMUM");
         userRepository.save(user);
+        groupService.acceptInviteAfterRegistration(request.inviteToken(), user);
         return new TokenResponse(jwtService.generateToken(user));
     }
 

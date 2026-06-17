@@ -19,6 +19,10 @@ public class Group {
     @Column(nullable = false)
     private String name;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
+
     /** Usuários que pertencem a este grupo. */
     @ManyToMany
     @JoinTable(
@@ -34,6 +38,9 @@ public class Group {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public User getOwner() { return owner; }
+    public void setOwner(User owner) { this.owner = owner; }
 
     public List<User> getMembers() { return members; }
     public void setMembers(List<User> members) { this.members = members; }

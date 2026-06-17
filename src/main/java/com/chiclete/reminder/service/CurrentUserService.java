@@ -19,10 +19,10 @@ public class CurrentUserService {
     public User requireCurrentUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
-            throw new IllegalStateException("Usuário não autenticado");
+            throw new IllegalStateException("Utilizador não autenticado");
         }
         String email = auth.getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("Usuário autenticado não encontrado"));
+                .orElseThrow(() -> new IllegalStateException("Utilizador autenticado não encontrado"));
     }
 }

@@ -15,9 +15,17 @@ public class Notification {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "reminder_id", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private NotificationType type = NotificationType.REMINDER;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reminder_id")
     private Reminder reminder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_invite_id")
+    private GroupInvite groupInvite;
 
     @Column(nullable = false, length = 500)
     private String message;
@@ -38,8 +46,14 @@ public class Notification {
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
 
+    public NotificationType getType() { return type; }
+    public void setType(NotificationType type) { this.type = type; }
+
     public Reminder getReminder() { return reminder; }
     public void setReminder(Reminder reminder) { this.reminder = reminder; }
+
+    public GroupInvite getGroupInvite() { return groupInvite; }
+    public void setGroupInvite(GroupInvite groupInvite) { this.groupInvite = groupInvite; }
 
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }

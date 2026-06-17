@@ -21,7 +21,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         var user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException("Utilizador não encontrado: " + email));
         String role = user.getRole();
         if (!role.startsWith("ROLE_")) {
             role = "ROLE_" + role;

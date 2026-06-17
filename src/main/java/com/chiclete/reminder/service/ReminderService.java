@@ -1,10 +1,12 @@
 package com.chiclete.reminder.service;
 
+import com.chiclete.reminder.domain.Group;
 import com.chiclete.reminder.domain.RecurrenceSupport;
 import com.chiclete.reminder.domain.Reminder;
 import com.chiclete.reminder.domain.User;
 import com.chiclete.reminder.dto.ReminderRequest;
 import com.chiclete.reminder.dto.ReminderResponse;
+import com.chiclete.reminder.infra.GroupRepository;
 import com.chiclete.reminder.infra.ReminderRepository;
 import com.chiclete.reminder.infra.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,15 +25,18 @@ public class ReminderService {
 
     private final ReminderRepository reminderRepository;
     private final UserRepository userRepository;
+    private final GroupRepository groupRepository;
     private final int ignoreThreshold;
 
     public ReminderService(
             ReminderRepository reminderRepository,
             UserRepository userRepository,
+            GroupRepository groupRepository,
             @Value("${app.chewing.ignore-threshold:3}") int ignoreThreshold
     ) {
         this.reminderRepository = reminderRepository;
         this.userRepository = userRepository;
+        this.groupRepository = groupRepository;
         this.ignoreThreshold = ignoreThreshold;
     }
 
@@ -59,6 +64,7 @@ public class ReminderService {
         r.setOwner(owner);
         r.setCompleted(false);
         r.setIgnoreCount(0);
+        applyGroupAssignment(r, request, owner);
         reminderRepository.save(r);
         return toResponse(r);
     }
@@ -159,13 +165,41 @@ public class ReminderService {
     public ReminderResponse shareWithEmail(Long id, String email, User actor) {
         Reminder r = getOwnedReminderOrThrow(id, actor);
         if (email.equalsIgnoreCase(actor.getEmail())) {
-            throw new DomainRuleException("Não é possível compartilhar o lembrete com você mesmo");
+            throw new DomainRuleException("Não podes partilhar o lembrete contigo");
         }
         User target = userRepository.findByEmail(email)
-                .orElseThrow(() -> new DomainRuleException("Usuário não encontrado para compartilhamento"));
+                .orElseThrow(() -> new DomainRuleException("Utilizador não encontrado para partilha"));
         r.getSharedWith().add(target);
         reminderRepository.save(r);
         return toResponse(r);
+    }
+
+    private void applyGroupAssignment(Reminder r, ReminderRequest request, User owner) {
+        boolean hasGroup = request.groupId() != null;
+        boolean hasAssignee = request.assigneeEmail() != null && !request.assigneeEmail().isBlank();
+        if (!hasGroup && !hasAssignee) {
+            return;
+        }
+        if (!hasGroup) {
+            throw new DomainRuleException("Seleciona um grupo para designar a tarefa");
+        }
+        if (!hasAssignee) {
+            return;
+        }
+        Group group = groupRepository.findByIdWithDetails(request.groupId())
+                .orElseThrow(() -> new NotFoundException("Grupo não encontrado"));
+        if (group.getOwner() == null || !group.getOwner().getId().equals(owner.getId())) {
+            throw new ForbiddenException("Apenas o admin do grupo pode designar tarefas");
+        }
+        String email = request.assigneeEmail().trim().toLowerCase(Locale.ROOT);
+        if (email.equals(owner.getEmail().toLowerCase(Locale.ROOT))) {
+            throw new DomainRuleException("Designa a tarefa a outro membro do grupo");
+        }
+        User assignee = group.getMembers().stream()
+                .filter(m -> m.getEmail().equalsIgnoreCase(email))
+                .findFirst()
+                .orElseThrow(() -> new DomainRuleException("O membro indicado não pertence a este grupo"));
+        r.getSharedWith().add(assignee);
     }
 
     private void applyRequest(Reminder r, ReminderRequest request) {
@@ -229,7 +263,7 @@ public class ReminderService {
         Reminder r = reminderRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Lembrete não encontrado"));
         if (!isOwner(r, user)) {
-            throw new ForbiddenException("Somente o dono pode realizar esta operação");
+            throw new ForbiddenException("Apenas o dono pode realizar esta operação");
         }
         return r;
     }

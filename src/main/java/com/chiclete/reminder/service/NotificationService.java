@@ -1,6 +1,8 @@
 package com.chiclete.reminder.service;
 
+import com.chiclete.reminder.domain.GroupInvite;
 import com.chiclete.reminder.domain.Notification;
+import com.chiclete.reminder.domain.NotificationType;
 import com.chiclete.reminder.domain.Reminder;
 import com.chiclete.reminder.domain.User;
 import com.chiclete.reminder.dto.NotificationResponse;
@@ -43,7 +45,7 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public List<NotificationResponse> listUnread(User user) {
-        return notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(user.getId()).stream()
+        return notificationRepository.findUnreadWithDetails(user.getId()).stream()
                 .map(n -> toResponse(n, user))
                 .toList();
     }
@@ -51,7 +53,7 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public List<NotificationResponse> listHistory(User user) {
         return notificationRepository
-                .findByUserIdOrderByCreatedAtDesc(user.getId(), PageRequest.of(0, HISTORY_LIMIT))
+                .findHistoryWithDetails(user.getId(), PageRequest.of(0, HISTORY_LIMIT))
                 .stream()
                 .map(n -> toResponse(n, user))
                 .toList();
@@ -75,7 +77,10 @@ public class NotificationService {
         Notification n = getOwnedNotification(id, user);
         n.setRead(true);
         notificationRepository.save(n);
-        if (n.getReminder().isChewing() && !n.getReminder().isCompleted()) {
+        if (n.getType() == NotificationType.REMINDER
+                && n.getReminder() != null
+                && n.getReminder().isChewing()
+                && !n.getReminder().isCompleted()) {
             reminderService.recordChewingIgnored(n.getReminder().getId(), user);
         }
         return toResponse(n, user);
@@ -84,10 +89,42 @@ public class NotificationService {
     @Transactional
     public NotificationResponse snooze(Long id, User user) {
         Notification n = getOwnedNotification(id, user);
+        if (n.getType() != NotificationType.REMINDER || n.getReminder() == null) {
+            throw new DomainRuleException("Só alertas de lembrete podem ser adiados");
+        }
         n.setRead(true);
         notificationRepository.save(n);
         reminderService.snooze(n.getReminder().getId(), DEFAULT_SNOOZE_MINUTES, user);
         return toResponse(n, user);
+    }
+
+    @Transactional
+    public void createGroupInviteNotification(GroupInvite invite) {
+        User recipient = invite.getInvitedUser();
+        if (!recipient.isNotifyInApp()) {
+            return;
+        }
+        String message = invite.getInvitedBy().getName() + " convidou-te para o grupo \"" + invite.getGroup().getName() + "\"";
+        Notification notification = new Notification();
+        notification.setUser(recipient);
+        notification.setType(NotificationType.GROUP_INVITE);
+        notification.setGroupInvite(invite);
+        notification.setMessage(message);
+        notification.setPriorityAtSend("INFO");
+        notification.setRead(false);
+        notification.setCreatedAt(LocalDateTime.now());
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void markGroupInviteNotificationsRead(Long inviteId, User user) {
+        notificationRepository.findUnreadWithDetails(user.getId()).stream()
+                .filter(n -> n.getType() == NotificationType.GROUP_INVITE)
+                .filter(n -> n.getGroupInvite() != null && inviteId.equals(n.getGroupInvite().getId()))
+                .forEach(n -> {
+                    n.setRead(true);
+                    notificationRepository.save(n);
+                });
     }
 
     @Transactional
@@ -99,6 +136,7 @@ public class NotificationService {
             if (recipient.isNotifyInApp()) {
                 Notification notification = new Notification();
                 notification.setUser(recipient);
+                notification.setType(NotificationType.REMINDER);
                 notification.setReminder(reminder);
                 notification.setMessage(message);
                 notification.setPriorityAtSend(reminder.getPriority());
@@ -133,17 +171,50 @@ public class NotificationService {
     }
 
     private NotificationResponse toResponse(Notification n, User viewer) {
+        if (n.getType() == NotificationType.GROUP_INVITE) {
+            GroupInvite invite = n.getGroupInvite();
+            if (invite == null) {
+                return new NotificationResponse(
+                        n.getId(), NotificationType.GROUP_INVITE.name(),
+                        null, null, null, null, null, null,
+                        n.getMessage(), n.getPriorityAtSend(), false, n.isRead(), n.getCreatedAt(), null
+                );
+            }
+            return new NotificationResponse(
+                    n.getId(),
+                    NotificationType.GROUP_INVITE.name(),
+                    null,
+                    null,
+                    invite.getId(),
+                    invite.getGroup().getId(),
+                    invite.getGroup().getName(),
+                    invite.getInvitedBy().getEmail(),
+                    n.getMessage(),
+                    n.getPriorityAtSend(),
+                    false,
+                    n.isRead(),
+                    n.getCreatedAt(),
+                    null
+            );
+        }
+
+        Reminder reminder = n.getReminder();
         String link = null;
-        if (viewer.isNotifyWhatsapp() && viewer.getWhatsapp() != null) {
+        if (viewer.isNotifyWhatsapp() && viewer.getWhatsapp() != null && reminder != null) {
             link = ProfileService.buildWhatsappLink(viewer.getWhatsapp(), n.getMessage());
         }
         return new NotificationResponse(
                 n.getId(),
-                n.getReminder().getId(),
-                n.getReminder().getTitle(),
+                NotificationType.REMINDER.name(),
+                reminder != null ? reminder.getId() : null,
+                reminder != null ? reminder.getTitle() : null,
+                null,
+                null,
+                null,
+                null,
                 n.getMessage(),
                 n.getPriorityAtSend(),
-                n.getReminder().isChewing(),
+                reminder != null && reminder.isChewing(),
                 n.isRead(),
                 n.getCreatedAt(),
                 link
