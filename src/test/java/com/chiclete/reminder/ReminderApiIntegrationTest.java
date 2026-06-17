@@ -55,6 +55,8 @@ class ReminderApiIntegrationTest {
               "MEDIA",
               null,
               null,
+              null,
+              null,
               null
       );
 
@@ -82,6 +84,8 @@ class ReminderApiIntegrationTest {
                 true,
                 15,
                 "BAIXA",
+                null,
+                null,
                 null,
                 null,
                 null
@@ -120,6 +124,8 @@ class ReminderApiIntegrationTest {
                 false,
                 null,
                 "ALTA",
+                null,
+                null,
                 null,
                 null,
                 null
@@ -169,7 +175,7 @@ class ReminderApiIntegrationTest {
     }
 
     @Test
-    void grupos_adicionar_membro() throws Exception {
+    void grupos_fluxo_convite_aceite() throws Exception {
         String a = registerAndGetToken("alfa@test.com");
         String b = registerAndGetToken("beta@test.com");
 
@@ -187,6 +193,30 @@ class ReminderApiIntegrationTest {
                         .header("Authorization", "Bearer " + a)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"beta@test.com\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.inviteToken").isNotEmpty());
+
+        mockMvc.perform(get("/api/groups").header("Authorization", "Bearer " + b))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        String invitesJson = mockMvc.perform(get("/api/groups/invites").header("Authorization", "Bearer " + b))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].groupInviteId").doesNotExist())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        long inviteId = objectMapper.readTree(invitesJson).get(0).get("id").asLong();
+
+        mockMvc.perform(get("/api/notifications").header("Authorization", "Bearer " + b))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("GROUP_INVITE"))
+                .andExpect(jsonPath("$[0].groupInviteId").value((int) inviteId));
+
+        mockMvc.perform(post("/api/groups/invites/" + inviteId + "/accept")
+                        .header("Authorization", "Bearer " + b))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.memberEmails", hasSize(2)));
 
@@ -194,5 +224,110 @@ class ReminderApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].name").value("Família"));
+    }
+
+    @Test
+    void admin_designa_lembrete_a_membro_do_grupo() throws Exception {
+        String adminToken = registerAndGetToken("admin-grp@test.com");
+        String memberToken = registerAndGetToken("membro-grp@test.com");
+
+        String groupJson = mockMvc.perform(post("/api/groups")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Tarefas\"}"))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        long groupId = objectMapper.readTree(groupJson).get("id").asLong();
+
+        mockMvc.perform(post("/api/groups/" + groupId + "/members")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"membro-grp@test.com\"}"))
+                .andExpect(status().isCreated());
+
+        String invitesJson = mockMvc.perform(get("/api/groups/invites").header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        long inviteId = objectMapper.readTree(invitesJson).get(0).get("id").asLong();
+
+        mockMvc.perform(post("/api/groups/invites/" + inviteId + "/accept")
+                        .header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isOk());
+
+        var reminder = new ReminderRequest(
+                "Comprar material",
+                "Lista da reunião",
+                LocalDateTime.of(2026, 8, 1, 10, 0),
+                false,
+                null,
+                "MEDIA",
+                null,
+                null,
+                null,
+                groupId,
+                "membro-grp@test.com"
+        );
+
+        mockMvc.perform(post("/api/reminders")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reminder)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.sharedWithEmails[0]").value("membro-grp@test.com"));
+
+        mockMvc.perform(get("/api/reminders").header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].title").value("Comprar material"));
+    }
+
+    @Test
+    void grupos_convite_por_token_apos_registro() throws Exception {
+        String a = registerAndGetToken("owner@test.com");
+
+        String groupJson = mockMvc.perform(post("/api/groups")
+                        .header("Authorization", "Bearer " + a)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Equipa\"}"))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        long groupId = objectMapper.readTree(groupJson).get("id").asLong();
+
+        String inviteJson = mockMvc.perform(post("/api/groups/" + groupId + "/members")
+                        .header("Authorization", "Bearer " + a)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"novo@test.com\"}"))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String token = objectMapper.readTree(inviteJson).get("inviteToken").asText();
+
+        mockMvc.perform(get("/api/invites/token/" + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groupName").value("Equipa"))
+                .andExpect(jsonPath("$.requiresRegistration").value(true));
+
+        String regJson = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Novo","email":"novo@test.com","password":"senha123","inviteToken":"%s"}
+                                """.formatted(token)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String newToken = objectMapper.readTree(regJson).get("token").asText();
+
+        mockMvc.perform(get("/api/groups").header("Authorization", "Bearer " + newToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].name").value("Equipa"));
     }
 }
